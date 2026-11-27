@@ -33,6 +33,58 @@ Then start Claude Code in any folder and ask:
 
 A few minutes later you'll get a link to an HTML file. Open it in your browser.
 
+## Desktop app (C++)
+
+Claude Animation Studio is also a native desktop app, written in C++ with Qt. Type an idea, pick
+2D or 3D and a style, and press **Animate**. You watch each agent work, and the finished animation
+plays right in the window. Every animation you make is listed on the left, ready to replay, open
+in your browser, or tweak and try again.
+
+<p align="center">
+  <img src="docs/desktop-app.png" alt="The desktop app after making “fireflies lighting up a forest clearing at dusk” in the Watercolor style: all six steps are done and the animation plays in the window" width="90%">
+</p>
+
+When you like the result, press **Export** to save it as an animated GIF (built in) or an MP4
+video (needs [ffmpeg](https://ffmpeg.org/download.html) installed).
+
+### Install
+
+Download the app for your computer from the
+[latest release](https://github.com/ProProgramer123/claude-animation-studio/releases/latest):
+
+| Computer | File | Notes |
+| --- | --- | --- |
+| Windows 10/11 | `…-Windows-Setup.exe` | Or the portable `.zip`. Windows may warn that the app is from an unknown publisher: choose **More info**, then **Run anyway**. |
+| macOS 12+ | `…-macOS.dmg` | Drag the app to Applications. The first time, right-click it and choose **Open**, because it isn't notarized by Apple. |
+| Ubuntu 24.04 / Debian | `…_amd64.deb` | `sudo apt install ./claude-animation-studio_*.deb`, then find it in your apps menu. |
+
+You also need [Claude Code](https://code.claude.com), signed in. Agents run through your Claude
+Code login, so no API key is needed. Animations are saved in `Documents/Claude Animation Studio`
+(change it in **File > Settings**).
+
+### Build it yourself
+
+You need a C++17 compiler, CMake 3.16+ and Qt 6 with WebEngine.
+
+```bash
+# Ubuntu/Debian: sudo apt install qt6-base-dev qt6-webengine-dev
+# macOS:         brew install qt
+cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp/build --config Release
+# then open cpp/build/Claude Animation Studio (.app on macOS, .exe on Windows,
+# claude-animation-studio on Linux). Add --offline to try it with canned agents.
+```
+
+The same engine has a command-line app too:
+
+```bash
+./cpp/build/animation-studio --mode 3d "a lighthouse at night"
+./cpp/build/animation-studio --runner mock "anything"   # offline, with canned agents
+```
+
+Without Qt, CMake still builds the engine and the command-line app. Run `ctest --test-dir cpp/build`
+for the engine tests.
+
 ## How it works
 
 ```
@@ -168,7 +220,8 @@ src/
 2. ~~Hidden director and the five agents~~
 3. ~~Real 2D (SVG/canvas) and 3D (Three.js) output, checked in a headless browser~~ (MP4 export later)
 4. ~~Example animations, setup docs and demo GIFs~~
-5. Ideas: MP4/GIF export, an API-key runner, more styles (pixel art, motion graphics), longer multi-scene films
+5. ~~Native C++ app: engine and command line, Qt desktop window, GIF/MP4 export and installers~~
+6. Ideas: an API-key runner, longer multi-scene films, more style presets
 
 ## Contributing
 

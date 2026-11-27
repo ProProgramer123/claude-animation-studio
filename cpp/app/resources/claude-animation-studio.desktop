@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Claude Animation Studio
+Comment=Describe an animation and a team of AI agents builds it
+Exec=claude-animation-studio
+Icon=claude-animation-studio
+Categories=Graphics;2DGraphics;3DGraphics;
+Terminal=false
