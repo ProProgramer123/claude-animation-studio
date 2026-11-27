@@ -1,0 +1,519 @@
+{
+  "loop": true,
+  "tracks": [
+    {
+      "element": "camera-rig",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "x": 0,
+            "y": 9,
+            "z": 34,
+            "targetX": 0,
+            "targetY": 5,
+            "targetZ": 0,
+            "fov": 45
+          }
+        },
+        {
+          "t": 1,
+          "props": {
+            "x": 6.83,
+            "y": 9.882,
+            "z": 32.72
+          }
+        },
+        {
+          "t": 2,
+          "props": {
+            "x": 10.43,
+            "y": 10.427,
+            "z": 30.17
+          }
+        },
+        {
+          "t": 3,
+          "props": {
+            "x": 9.83,
+            "y": 10.427,
+            "z": 28.42
+          }
+        },
+        {
+          "t": 4,
+          "props": {
+            "x": 5.84,
+            "y": 9.882,
+            "z": 27.97
+          }
+        },
+        {
+          "t": 5,
+          "props": {
+            "x": 0,
+            "y": 9,
+            "z": 28
+          }
+        },
+        {
+          "t": 6,
+          "props": {
+            "x": -5.84,
+            "y": 8.118,
+            "z": 27.97
+          }
+        },
+        {
+          "t": 7,
+          "props": {
+            "x": -9.83,
+            "y": 7.573,
+            "z": 28.42
+          }
+        },
+        {
+          "t": 8,
+          "props": {
+            "x": -10.43,
+            "y": 7.573,
+            "z": 30.17
+          }
+        },
+        {
+          "t": 9,
+          "props": {
+            "x": -6.83,
+            "y": 8.118,
+            "z": 32.72
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "x": 0,
+            "y": 9,
+            "z": 34,
+            "targetX": 0,
+            "targetY": 5,
+            "targetZ": 0,
+            "fov": 45
+          }
+        }
+      ]
+    },
+    {
+      "element": "beam-cone",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "rotation": {
+              "y": -1.2208
+            },
+            "opacity": 0.18,
+            "spotIntensity": 60
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "rotation": {
+              "y": 5.0624
+            },
+            "opacity": 0.18,
+            "spotIntensity": 60
+          }
+        }
+      ]
+    },
+    {
+      "element": "beam-cone",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "opacityBoost": 1
+          }
+        },
+        {
+          "t": 1.5,
+          "props": {
+            "opacityBoost": 1.15
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "opacityBoost": 1.8
+          }
+        },
+        {
+          "t": 3.5,
+          "props": {
+            "opacityBoost": 1.15
+          }
+        },
+        {
+          "t": 4.5,
+          "props": {
+            "opacityBoost": 1
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "opacityBoost": 1
+          }
+        }
+      ]
+    },
+    {
+      "element": "lamp-core",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "haloScale": 2.5,
+            "haloOpacity": 0.7,
+            "lightIntensity": 2
+          }
+        },
+        {
+          "t": 0.7,
+          "props": {
+            "lightIntensity": 2.06
+          }
+        },
+        {
+          "t": 1.5,
+          "props": {
+            "haloScale": 2.7,
+            "haloOpacity": 0.75,
+            "lightIntensity": 1.95
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "haloScale": 4.5,
+            "haloOpacity": 1,
+            "lightIntensity": 2.05
+          }
+        },
+        {
+          "t": 3.5,
+          "props": {
+            "haloScale": 2.7,
+            "haloOpacity": 0.75,
+            "lightIntensity": 1.94
+          }
+        },
+        {
+          "t": 4.5,
+          "props": {
+            "haloScale": 2.5,
+            "haloOpacity": 0.7,
+            "lightIntensity": 2.04
+          }
+        },
+        {
+          "t": 5.8,
+          "props": {
+            "lightIntensity": 1.97
+          }
+        },
+        {
+          "t": 7.1,
+          "props": {
+            "lightIntensity": 2.06
+          }
+        },
+        {
+          "t": 8.4,
+          "props": {
+            "lightIntensity": 1.95
+          }
+        },
+        {
+          "t": 9.3,
+          "props": {
+            "lightIntensity": 2.03
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "haloScale": 2.5,
+            "haloOpacity": 0.7,
+            "lightIntensity": 2
+          }
+        }
+      ]
+    },
+    {
+      "element": "lantern-room",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "emissiveIntensity": 0.4
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "emissiveIntensity": 1.2
+          }
+        },
+        {
+          "t": 4.5,
+          "props": {
+            "emissiveIntensity": 0.4
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "emissiveIntensity": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "element": "background",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "fogColor": "#0b1028",
+            "fogDensity": 0.012
+          }
+        },
+        {
+          "t": 1.5,
+          "props": {
+            "fogColor": "#120f22"
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "fogColor": "#3a2c1a",
+            "fogDensity": 0.013
+          }
+        },
+        {
+          "t": 3.5,
+          "props": {
+            "fogColor": "#120f22"
+          }
+        },
+        {
+          "t": 4.5,
+          "props": {
+            "fogColor": "#0b1028",
+            "fogDensity": 0.012
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "fogColor": "#0b1028",
+            "fogDensity": 0.012
+          }
+        }
+      ]
+    },
+    {
+      "element": "stars",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "opacity": 0.7
+          }
+        },
+        {
+          "t": 1.5,
+          "props": {
+            "opacity": 0.66
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "opacity": 0.42
+          }
+        },
+        {
+          "t": 3.5,
+          "props": {
+            "opacity": 0.66
+          }
+        },
+        {
+          "t": 4.5,
+          "props": {
+            "opacity": 0.7
+          }
+        },
+        {
+          "t": 6,
+          "props": {
+            "opacity": 0.62
+          }
+        },
+        {
+          "t": 7.5,
+          "props": {
+            "opacity": 0.74
+          }
+        },
+        {
+          "t": 9,
+          "props": {
+            "opacity": 0.66
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "opacity": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "element": "ocean",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "wavePhase": 0,
+            "color": "#0d1f3c"
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "wavePhase": 6.2832,
+            "color": "#0d1f3c"
+          }
+        }
+      ]
+    },
+    {
+      "element": "cottage",
+      "easing": "easeInOutSine",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "windowEmissiveIntensity": 2,
+            "windowLightIntensity": 0.6
+          }
+        },
+        {
+          "t": 3.3,
+          "props": {
+            "windowEmissiveIntensity": 1.94,
+            "windowLightIntensity": 0.58
+          }
+        },
+        {
+          "t": 6.7,
+          "props": {
+            "windowEmissiveIntensity": 2.05,
+            "windowLightIntensity": 0.62
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "windowEmissiveIntensity": 2,
+            "windowLightIntensity": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "element": "moon",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "opacity": 0.95,
+            "reflectionOpacity": 0.12
+          }
+        },
+        {
+          "t": 2.5,
+          "props": {
+            "opacity": 0.8,
+            "reflectionOpacity": 0.09
+          }
+        },
+        {
+          "t": 5,
+          "props": {
+            "opacity": 0.95,
+            "reflectionOpacity": 0.12
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "opacity": 0.95,
+            "reflectionOpacity": 0.12
+          }
+        }
+      ]
+    },
+    {
+      "element": "island-rocks",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "opacity": 1
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "opacity": 1
+          }
+        }
+      ]
+    },
+    {
+      "element": "lighthouse-tower",
+      "easing": "linear",
+      "keyframes": [
+        {
+          "t": 0,
+          "props": {
+            "opacity": 1
+          }
+        },
+        {
+          "t": 10,
+          "props": {
+            "opacity": 1
+          }
+        }
+      ]
+    }
+  ]
+}

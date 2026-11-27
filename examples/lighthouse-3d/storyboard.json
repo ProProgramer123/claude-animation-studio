@@ -1,0 +1,41 @@
+{
+  "title": "The Keeper's Light",
+  "duration_seconds": 10,
+  "scenes": [
+    {
+      "id": "s1-establish",
+      "start": 0,
+      "end": 2,
+      "description": "Wide establishing shot of the small low-poly granite island at night. The red-and-white striped lighthouse stands with its glass lantern room glowing amber, and a point light warms the lamp. The keeper's cottage shows one warm lit window. A deep navy ocean rolls in a gentle vertex-displaced swell under a near-black indigo gradient sky with faint scattered stars. A pale crescent moon sits low on the horizon, and light exponential fog softens the distance. The soft additive volumetric beam cone and its paired spotlight rotate at a constant 36°/s, starting about 90° off-axis and swinging toward the viewer.",
+      "camera": "Wide, slightly elevated three-quarter view. Starts on a slow orbit path at the loop's base radius and drifts subtly inward toward the island. No cuts."
+    },
+    {
+      "id": "s2-beam-flash",
+      "start": 2,
+      "end": 4,
+      "description": "The rotating beam swings past the camera's line of sight and peaks around 2.5s, when the beam points nearest the viewer. A soft bloom flash washes across the frame: the additive cone brightens, the fog glows amber-gold, and the stars dim briefly. The lamp core blazes, then the beam continues past and the frame settles back to cool blues.",
+      "camera": "Continues the gentle orbit and slight inward drift. Framing holds the lantern room upper-center so the beam crosses the lens. Constant slow motion."
+    },
+    {
+      "id": "s3-rake-waves-a",
+      "start": 4,
+      "end": 6,
+      "description": "The beam lays out across the open sea, and the spotlight rakes the rolling wave crests. Specular glints sparkle along the moving swells where the light passes, and the beam fades into the exponential fog at distance. The flat-shaded dark granite rocks catch brief rim highlights as the cone sweeps over them.",
+      "camera": "Gentle orbit continues around the island at a constant angular speed. At its closest approach the camera begins to ease back out."
+    },
+    {
+      "id": "s4-rake-waves-b",
+      "start": 6,
+      "end": 8,
+      "description": "The beam keeps sweeping across the far side of the sea, so the glints travel along the crests away from the camera. The lighthouse is partly backlit by its own beam's glow in the fog. The cottage window stays a small steady amber point, and the crescent moon holds low and pale.",
+      "camera": "Orbit continues and the camera eases outward again, heading back toward the opening radius and height."
+    },
+    {
+      "id": "s5-loop-return",
+      "start": 8,
+      "end": 10,
+      "description": "The beam completes its full 360° rotation and swings back to its starting angle at t=10s. The wave phase, camera position, and beam angle all return exactly to their 0s values for a seamless loop. The scene settles into the calm opening composition: a solitary, watchful lighthouse on a quiet sea.",
+      "camera": "Orbit completes its loop cycle and settles back to the exact opening wide position and look-at target. Motion stays continuous so the loop point is invisible."
+    }
+  ]
+}
