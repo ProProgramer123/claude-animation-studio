@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Boat at Sunset</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #2B1446; }
+  svg { display: block; width: 100vw; height: 100vh; }
+  .screen { mix-blend-mode: screen; }
+</style>
+</head>
+<body>
+<svg id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="405" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2B1446"/>
+      <stop offset="0.25" stop-color="#5A1F6B"/>
+      <stop offset="0.55" stop-color="#B0306F"/>
+      <stop offset="0.82" stop-color="#F0675A"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </linearGradient>
+    <radialGradient id="glowGrad" cx="800" cy="405" r="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFD27A" stop-opacity="1"/>
+      <stop offset="0.35" stop-color="#FFB347" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#FFB347" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sunGrad" cx="800" cy="405" r="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF3C4"/>
+      <stop offset="0.6" stop-color="#FFE6A8"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </radialGradient>
+    <clipPath id="aboveHorizon"><rect x="0" y="0" width="1600" height="405"/></clipPath>
+    <linearGradient id="seaGrad" x1="0" y1="405" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7A2E5E"/>
+      <stop offset="1" stop-color="#2E1033"/>
+    </linearGradient>
+    <radialGradient id="seaGlowGrad" cx="800" cy="405" r="420" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 405) scale(1 0.35) translate(-800 -405)">
+      <stop offset="0" stop-color="#FFB347" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#FFB347" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="reflMaskGrad" x1="0" y1="405" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#fff" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0.15"/>
+    </linearGradient>
+    <mask id="reflMask" maskUnits="userSpaceOnUse" x="0" y="400" width="1600" height="500">
+      <rect x="0" y="400" width="1600" height="500" fill="url(#reflMaskGrad)"/>
+    </mask>
+    <linearGradient id="wakeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E88A8F" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="#E88A8F" stop-opacity="0.5" id="wakeStopMid"/>
+      <stop offset="1" stop-color="#E88A8F" stop-opacity="1" id="wakeStopEnd"/>
+    </linearGradient>
+    <radialGradient id="vigGrad" cx="800" cy="450" r="950" gradientUnits="userSpaceOnUse">
+      <stop offset="0.45" stop-color="#1A0A22" stop-opacity="0"/>
+      <stop offset="1" stop-color="#1A0A22" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="406" fill="url(#skyGrad)"/>
+  <circle id="sunGlow" cx="800" cy="405" r="500" fill="url(#glowGrad)" opacity="0.5"/>
+  <circle cx="800" cy="405" r="95" fill="url(#sunGrad)" clip-path="url(#aboveHorizon)"/>
+  <g id="clouds"></g>
+
+  <rect x="0" y="405" width="1600" height="495" fill="url(#seaGrad)"/>
+  <rect x="0" y="405" width="1600" height="300" fill="url(#seaGlowGrad)"/>
+  <g id="waves"></g>
+  <g id="reflection" class="screen" mask="url(#reflMask)"></g>
+  <g id="ripples" class="screen" opacity="0"></g>
+  <g id="wake" opacity="0">
+    <path d="M-46,-3 L-268,-29 L-268,-26.5 L-46,1 Z" fill="url(#wakeGrad)"/>
+    <path d="M-46,2 L-262,27 L-262,30 L-46,5.5 Z" fill="url(#wakeGrad)"/>
+  </g>
+  <g id="sparkles" opacity="0.55"></g>
+  <g id="boat">
+    <g id="boatLit"></g>
+    <g id="boatSil" opacity="0"></g>
+  </g>
+  <rect x="0" y="0" width="1600" height="900" fill="url(#vigGrad)" pointer-events="none"/>
+</svg>
+
+<script>
+(function () {
+  const NS = 'http://www.w3.org/2000/svg';
+  const D = 10;
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const TAU = Math.PI * 2;
+  const ease = {
+    linear: u => u,
+    inOutSine: u => -(Math.cos(Math.PI * u) - 1) / 2,
+    outSine: u => Math.sin(Math.PI * u / 2)
+  };
+  function track(kfs, e) {
+    const f = ease[e] || ease.linear;
+    return function (t) {
+      if (t <= kfs[0][0]) return kfs[0][1];
+      for (let i = 0; i < kfs.length - 1; i++) {
+        const a = kfs[i], b = kfs[i + 1];
+        if (t <= b[0]) {
+          const span = b[0] - a[0];
+          const u = span <= 0 ? 1 : (t - a[0]) / span;
+          return a[1] + (b[1] - a[1]) * f(u);
+        }
+      }
+      return kfs[kfs.length - 1][1];
+    };
+  }
+
+  // ---------- Tracks ----------
+  const boatX = track([[0,-160],[2,128],[4.5,672],[5,800],[5.75,928],[7,1120],[9.2,1760],[10,1760]], 'linear');
+  const boatY = t => 700 - 6 * Math.cos(TAU * t / 2.5);
+  const boatR = t => 4 * Math.sin(TAU * t / 2.5);
+  const silOp = track([[0,0],[4.5,0],[4.9,1],[5.25,1],[5.75,0],[10,0]], 'inOutSine');
+  const wakeY = t => 700 - 3 * Math.cos(TAU * t / 2.5);
+  const wakeOp = track([[0,0],[0.6,.55],[4.6,.55],[5,.7],[5.5,.55],[8.2,.55],[9.2,0],[10,0]], 'inOutSine');
+  const wakeGold = track([[0,0],[4.6,0],[5,1],[5.5,0],[10,0]], 'inOutSine');
+  const ripX = track([[0,672],[4.5,672],[4.55,685],[5,800],[5.65,911],[5.75,928],[10,928]], 'linear');
+  const ripOp = track([[0,0],[4.5,0],[4.55,1],[5,1],[5.65,1],[5.75,0],[10,0]], 'linear');
+  const rings = [
+    { rx: track([[0,60],[4.6,60],[5.2,180],[10,60]],'outSine'), ry: track([[0,4],[4.6,4],[5.2,10],[10,4]],'outSine'), op: track([[0,0],[4.6,.7],[5.2,0],[10,0]],'outSine') },
+    { rx: track([[0,60],[4.9,60],[5.4,180],[10,60]],'outSine'), ry: track([[0,4],[4.9,4],[5.4,10],[10,4]],'outSine'), op: track([[0,0],[4.9,.7],[5.4,0],[10,0]],'outSine') },
+    { rx: track([[0,60],[5.2,60],[5.6,180],[10,60]],'outSine'), ry: track([[0,4],[5.2,4],[5.6,10],[10,4]],'outSine'), op: track([[0,0],[5.2,.7],[5.6,0],[10,0]],'outSine') }
+  ];
+  const reflSx = t => 0.975 - 0.125 * Math.cos(TAU * t / 2.5);
+  const reflOp = t => 0.725 - 0.125 * Math.cos(TAU * t / 5);
+  const heroSx = track([[0,1],[4.5,1],[5,1.35],[5.75,1],[10,1]], 'inOutSine');
+  const glowOp = t => 0.55 - 0.05 * Math.cos(TAU * t / 5);
+  const cloudX = t => -20 * Math.cos(TAU * t / 10);
+  const sparkGroupOp = track([[0,.55],[6.5,.55],[7.5,1],[9.5,1],[10,.55]], 'inOutSine');
+  const twA = t => (1 - Math.cos(TAU * t / 2.5)) / 2;
+  const twB = t => (1 + Math.cos(TAU * t / 5)) / 2;
+
+  // ---------- Clouds ----------
+  const cloudLayer = document.getElementById('clouds');
+  const cloudDefs = [
+    { x: 180, y: 150, w: 380, h: 26, k: 1 },
+    { x: 1050, y: 110, w: 300, h: 20, k: 0.8 },
+    { x: 1250, y: 250, w: 220, h: 16, k: 1.2 }
+  ];
+  const defs = document.querySelector('defs');
+  const cloudGroups = [];
+  cloudDefs.forEach((c, i) => {
+    const base = c.y + c.h / 2, top = base - c.h;
+    const g = el('linearGradient', { id: 'cg' + i, x1: 0, y1: top, x2: 0, y2: base, gradientUnits: 'userSpaceOnUse' }, defs);
+    el('stop', { offset: 0, 'stop-color': '#6B2A72', 'stop-opacity': 0.6 }, g);
+    el('stop', { offset: 0.5, 'stop-color': '#C94A7E' }, g);
+    el('stop', { offset: 1, 'stop-color': '#F7889A' }, g);
+    const cp = el('clipPath', { id: 'cc' + i }, defs);
+    el('rect', { x: c.x - 50, y: top - 20, width: c.w + 100, height: base - top + 20 }, cp);
+    const grp = el('g', {}, cloudLayer);
+    const inner = el('g', { 'clip-path': 'url(#cc' + i + ')' }, grp);
+    const lumps = [[0.08,0.1,0.4],[0.3,0.22,0.75],[0.52,0.24,1],[0.74,0.2,0.7],[0.92,0.09,0.42]];
+    lumps.forEach(l => el('ellipse', { cx: c.x + l[0] * c.w, cy: base, rx: l[1] * c.w, ry: l[2] * c.h, fill: 'url(#cg' + i + ')' }, inner));
+    el('rect', { x: c.x + c.w * 0.05, y: base - 3, width: c.w * 0.9, height: 3, rx: 1.5, fill: '#FFC0A0', opacity: 0.85 }, grp);
+    cloudGroups.push({ g: grp, k: c.k });
+  });
+
+  // ---------- Waves ----------
+  const waveLayer = document.getElementById('waves');
+  const bands = [
+    { y: 430, A: 4, L: 400, fill: '#6E2858', op: 0.7, shift: 400 },
+    { y: 500, A: 6, L: 320, fill: '#5C2150', op: 0.85, shift: 640, hl: { c: '#C4546F', w: 2, op: 0.7 } },
+    { y: 610, A: 9, L: 260, fill: '#43173F', op: 0.9, shift: 780, hl: { c: '#E88A8F', w: 2, op: 0.5 } },
+    { y: 700, A: 14, L: 400, fill: '#2E1033', op: 1, shift: 1600, hl: { c: '#C4546F', w: 3, op: 0.6 } }
+  ];
+  const W = 3400, step = 8;
+  bands.forEach(b => {
+    const pts = [];
+    for (let x = 0; x <= W; x += step) pts.push([x, b.y + b.A * Math.sin(TAU * x / b.L)]);
+    let d = 'M0,900 ';
+    pts.forEach(p => d += 'L' + p[0] + ',' + p[1].toFixed(2) + ' ');
+    d += 'L' + W + ',900 Z';
+    const g = el('g', {}, waveLayer);
+    el('path', { d, fill: b.fill, opacity: b.op }, g);
+    if (b.hl) {
+      let h = 'M' + pts[0][0] + ',' + pts[0][1].toFixed(2) + ' ';
+      pts.forEach(p => h += 'L' + p[0] + ',' + p[1].toFixed(2) + ' ');
+      for (let i = pts.length - 1; i >= 0; i--) {
+        const p = pts[i];
+        h += 'L' + p[0] + ',' + (p[1] + b.hl.w).toFixed(2) + ' ';
+      }
+      h += 'Z';
+      el('path', { d: h, fill: b.hl.c, opacity: b.hl.op }, g);
+    }
+    b.g = g;
+  });
+
+  // ---------- Reflection ----------
+  const reflLayer = document.getElementById('reflection');
+  const strips = [];
+  const N = 14;
+  const fac = [0.6, 0.9, 0.7, 1.0, 0.65, 0.85, 0.95, 0.6, 0.8, 1.0, 0.7, 0.9, 0.65, 0.85];
+  const cols = ['#FFE6A8','#FFD27A','#FFD27A','#FFB347','#FFD27A','#FFE6A8','#FFD27A','#FFE6A8','#E88A8F','#FFE6A8','#E88A8F','#FFD27A','#E88A8F','#E88A8F'];
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1);
+    const y = 414 + Math.pow(u, 1.25) * 450;
+    const w = (180 + 240 * u) * fac[i];
+    const h = 4 + 6 * u;
+    const g = el('g', {}, reflLayer);
+    el('rect', { x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2, fill: cols[i] }, g);
+    strips.push({ g, y, base: 0.35 + 0.5 * ((i * 7) % 11) / 10, ph: i * 1.7, off: ((i * 37) % 23) - 11, k: (i % 2) + 1 });
+  }
+
+  // ---------- Ripples ----------
+  const ripLayer = document.getElementById('ripples');
+  const ringEls = rings.map((r, i) => el('path', { fill: i === 1 ? '#FFD27A' : '#FFE6A8', 'fill-rule': 'evenodd', opacity: 0 }, ripLayer));
+  function ringPath(rx, ry) {
+    const th = 3, ir = rx - th, iry = Math.max(0.6, ry - 1.4);
+    return 'M' + (-rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (2 * rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (-2 * rx) + ',0 Z ' +
+           'M' + (-ir) + ',0 a' + ir + ',' + iry + ' 0 1,0 ' + (2 * ir) + ',0 a' + ir + ',' + iry + ' 0 1,0 ' + (-2 * ir) + ',0 Z';
+  }
+
+  // ---------- Wake ----------
+  const wake = document.getElementById('wake');
+  const wakeStops = [document.getElementById('wakeStopMid'), document.getElementById('wakeStopEnd'), document.querySelector('#wakeGrad stop')];
+  function mixHex(a, b, u) {
+    const pa = [1,3,5].map(i => parseInt(a.substr(i, 2), 16));
+    const pb = [1,3,5].map(i => parseInt(b.substr(i, 2), 16));
+    return 'rgb(' + pa.map((v, i) => Math.round(v + (pb[i] - v) * u)).join(',') + ')';
+  }
+
+  // ---------- Sparkles ----------
+  const sparkLayer = document.getElementById('sparkles');
+  const starD = 'M0,-1 L0.16,-0.16 L1,0 L0.16,0.16 L0,1 L-0.16,0.16 L-1,0 L-0.16,-0.16 Z';
+  const sparkDefs = [
+    [760,520,5,'A',0],[845,560,4,'B',0.4],[790,640,6,'A',0.9],[835,690,5,'B',1.6],[740,760,6,'A',1.7],[880,820,5,'B',3.1],
+    [420,540,4,'B',0.7],[1180,525,4,'A',0.3],[560,650,5,'A',2.1],[1060,660,5,'B',2.4],[300,760,6,'B',3.8],[1330,750,6,'A',1.1]
+  ];
+  const sparkColors = ['#FFF3C4','#FFE6A8','#FFD27A'];
+  const sparks = sparkDefs.map((s, i) => {
+    const g = el('g', {}, sparkLayer);
+    el('path', { d: starD, fill: sparkColors[i % 3] }, g);
+    return { g, x: s[0], y: s[1], r: s[2], type: s[3], delay: s[4] };
+  });
+
+  // ---------- Boat ----------
+  const lit = document.getElementById('boatLit');
+  const sil = document.getElementById('boatSil');
+  const boatEl = document.getElementById('boat');
+  const polys = [
+    ['#F4F7FB', '-75,-22 -38,-21.5 -1,-22.5 0.5,8 -24,7.2 -51,8.5 -62,-6 -63,-8.5'],
+    ['#C9D4E3', '0.5,-22.5 37,-21 74,-23 61,-5 50.5,8 24,8.6 0.5,8'],
+    ['#9AA8C0', '-1,-22.5 1.6,-22.4 1.8,8 0.5,8'],
+    ['#DDE4EE', '-38,-21.5 -1,-22.5 -2,-17 -34,-17.6'],
+    ['#F4F7FB', '-39,-22 -18,-55 -21,-56.5 0.5,-87 0.5,-22.5'],
+    ['#C9D4E3', '0.5,-87 21,-53 37.5,-21.5 0.5,-22.5'],
+    ['#DDE4EE', '-75,-22 -49,-21.6 -71,-39.5'],
+    ['#9AA8C0', '74,-23 49,-21.4 69.5,-39'],
+    ['#C9D4E3', '-51,8.5 -44,8 -48,5']
+  ];
+  polys.forEach(p => {
+    el('polygon', { points: p[1], fill: p[0] }, lit);
+    el('polygon', { points: p[1], fill: '#3A1236' }, sil);
+  });
+
+  // ---------- Render ----------
+  function render(t, levelBoat) {
+    document.getElementById('sunGlow').setAttribute('opacity', glowOp(t).toFixed(3));
+    const cx = cloudX(t);
+    cloudGroups.forEach(c => c.g.setAttribute('transform', 'translate(' + (cx * c.k).toFixed(2) + ',0)'));
+    bands.forEach(b => b.g.setAttribute('transform', 'translate(' + (-b.shift * t / D).toFixed(2) + ',0)'));
+
+    const sx = reflSx(t), op = reflOp(t) / 0.85;
+    strips.forEach(s => {
+      const jitter = 1 + 0.07 * Math.sin(TAU * t / 2.5 * s.k + s.ph);
+      const dist = Math.abs(s.y - 700);
+      const strength = Math.exp(-dist / 170);
+      const h = heroSx(Math.max(0, t - dist / 450));
+      const fx = sx * jitter * (1 + (h - 1) * strength);
+      const ox = s.off * Math.sin(TAU * t / 5 + s.ph);
+      const o = s.base * op * (0.8 + 0.2 * Math.sin(TAU * t / 2.5 + s.ph * 1.3));
+      s.g.setAttribute('transform', 'translate(' + (800 + ox).toFixed(2) + ',' + s.y.toFixed(2) + ') scale(' + fx.toFixed(4) + ',1)');
+      s.g.setAttribute('opacity', Math.min(1, o).toFixed(3));
+    });
+
+    const rop = ripOp(t);
+    ripLayer.setAttribute('opacity', rop.toFixed(3));
+    ripLayer.setAttribute('transform', 'translate(' + ripX(t).toFixed(2) + ',700)');
+    if (rop > 0) rings.forEach((r, i) => {
+      ringEls[i].setAttribute('d', ringPath(r.rx(t), r.ry(t)));
+      ringEls[i].setAttribute('opacity', r.op(t).toFixed(3));
+    });
+
+    const bx = boatX(t);
+    wake.setAttribute('transform', 'translate(' + bx.toFixed(2) + ',' + wakeY(t).toFixed(2) + ')');
+    wake.setAttribute('opacity', wakeOp(t).toFixed(3));
+    const wc = mixHex('#E88A8F', '#FFD27A', wakeGold(t));
+    wakeStops.forEach(s => s.setAttribute('stop-color', wc));
+    const rot = levelBoat ? 0 : boatR(t);
+    boatEl.setAttribute('transform', 'translate(' + bx.toFixed(2) + ',' + boatY(t).toFixed(2) + ') rotate(' + rot.toFixed(3) + ')');
+    sil.setAttribute('opacity', silOp(t).toFixed(3));
+
+    sparkLayer.setAttribute('opacity', sparkGroupOp(t).toFixed(3));
+    sparks.forEach(s => {
+      const v = s.type === 'A' ? twA(t + s.delay) : twB(t + s.delay);
+      const sc = Math.max(0.001, v * s.r);
+      s.g.setAttribute('transform', 'translate(' + s.x + ',' + s.y + ') scale(' + sc.toFixed(3) + ')');
+      s.g.setAttribute('opacity', v.toFixed(3));
+    });
+  }
+
+  const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let raf = null;
+  const t0 = performance.now();
+  function frame(now) {
+    const t = (((now - t0) / 1000) % D + D) % D;
+    render(t, false);
+    raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = null;
+    if (mq.matches) {
+      render(3.5, true);
+    } else {
+      raf = requestAnimationFrame(frame);
+    }
+  }
+  if (mq.addEventListener) mq.addEventListener('change', start);
+  else if (mq.addListener) mq.addListener(start);
+  render(0, false);
+  start();
+})();
+</script>
+</body>
+</html>

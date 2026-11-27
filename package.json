@@ -1,6 +1,6 @@
 {
   "name": "claude-animation-studio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An AI animation studio for Claude Code: a hidden director refines your prompt and five agents build a 2D or 3D animation.",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node scripts/smoke-test.mjs"
+    "test": "npm run build && node --test test/*.test.mjs && node scripts/smoke-test.mjs"
   },
   "repository": {
     "type": "git",
