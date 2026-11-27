@@ -70,3 +70,45 @@ test("a stage that returns broken JSON fails with the agent's name", async () =>
     /storyboard agent did not return JSON/,
   );
 });
+
+const fakeChecker = (results) => {
+  let i = 0;
+  return { name: "fake", check: async () => results[Math.min(i++, results.length - 1)] };
+};
+
+test("browser errors block approval and go back to the renderer", async () => {
+  const runner = new MockRunner();
+  const checker = fakeChecker([
+    { errors: ["Uncaught error: THREE is not defined"], static: false, screenshot: Buffer.from("png") },
+    { errors: [], static: false, screenshot: Buffer.from("png") },
+  ]);
+  const outputDir = await tmp();
+  const result = await runPipeline({ prompt: "a cube", mode: "3d", runner, checker, outputDir });
+
+  assert.equal(result.revisions, 1);
+  assert.equal(result.approved, true);
+  const firstReview = runner.calls.find((c) => c.agent === "reviewer");
+  assert.match(firstReview.prompt, /THREE is not defined/);
+  const fixRequest = runner.calls.filter((c) => c.agent === "renderer")[1];
+  assert.match(fixRequest.prompt, /Fix this browser error: Uncaught error: THREE is not defined/);
+  assert.equal(result.previewPath, path.join(outputDir, "preview.png"));
+});
+
+test("a frozen animation is not approved", async () => {
+  const runner = new MockRunner();
+  const checker = fakeChecker([{ errors: [], static: true }]);
+  const result = await runPipeline({
+    prompt: "a cube", mode: "2d", runner, checker, outputDir: await tmp(), maxRevisions: 0,
+  });
+  assert.equal(result.approved, false);
+  assert.match(result.openIssues.join(" "), /Nothing moves/);
+});
+
+test("a checker that can't run is skipped", async () => {
+  const runner = new MockRunner();
+  const result = await runPipeline({
+    prompt: "a cube", mode: "2d", runner, checker: fakeChecker([null]), outputDir: await tmp(),
+  });
+  assert.equal(result.approved, true);
+  assert.equal(result.previewPath, undefined);
+});

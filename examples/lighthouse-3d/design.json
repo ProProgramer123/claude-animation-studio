@@ -1,0 +1,124 @@
+{
+  "background": "Near-black indigo night sky as a large inverted sphere (radius ~400) with a vertical gradient shader: #05060f at zenith blending to #141a3a near the horizon. About 600 faint star points (THREE.Points, size 0.6-1.2, opacity 0.4-0.8) scattered on the upper hemisphere only. Light exponential fog (FogExp2, color #0b1028, density ~0.012) so the beam and the sea fade into distance. The deep navy ocean fills the lower frame out to the horizon.",
+  "palette": [
+    "#05060f",
+    "#0b1028",
+    "#141a3a",
+    "#0d1f3c",
+    "#1a3358",
+    "#2a2f38",
+    "#3a3f4a",
+    "#f2efe6",
+    "#b8322c",
+    "#ffd27a",
+    "#ffb347",
+    "#fff4d6",
+    "#e8e6d8"
+  ],
+  "lighting": "Cool, dim moonlight comes from a DirectionalLight (#8fa6d6, intensity 0.35) placed low on the moon's side, with a faint HemisphereLight (sky #1a2348, ground #05060f, intensity 0.25). A warm PointLight sits at the lamp (#ffc46b, intensity ~2, distance 25, decay 2) and flickers subtly by ±3%. A SpotLight (#ffd98a, intensity ~60, angle 0.18 rad, penumbra 0.6, distance 120) is parented to the rotating beam pivot so it rakes the sea and the rocks. A small PointLight (#ffb347, intensity 0.6, distance 4) sits just inside the cottage window. Bloom flash at about 2.5s: as the beam's facing toward the camera peaks, beam opacity boosts by 1.8x, the fog color lerps toward #3a2c1a, and star opacity drops by about 40%. Drive all of these from cos(beamAngle - cameraAzimuth) so they loop seamlessly. The renderer uses ACESFilmic tone mapping at exposure ~1.1.",
+  "elements": [
+    {
+      "id": "ocean",
+      "name": "Ocean plane",
+      "description": "PlaneGeometry 300x300 with about 200x200 segments, rotated flat at y=0. Vertex-displace it in the shader or on the CPU with a sum of 3-4 sine/Gerstner waves (amplitudes 0.15-0.4, wavelengths 6-20). Every wave's temporal frequency must be an integer multiple of 2π/10s so the swell loops seamlessly. Use smooth shading with MeshStandardMaterial (metalness 0.1, roughness 0.25) so the spotlight produces moving specular glints on the crests. Optional: add a crest brightening term where displacement > 0.25.",
+      "colors": [
+        "#0d1f3c",
+        "#1a3358",
+        "#fff4d6"
+      ],
+      "size": "300 x 300 units, centered on the island"
+    },
+    {
+      "id": "island-rocks",
+      "name": "Granite rock cluster",
+      "description": "Use 7-10 IcosahedronGeometry (detail 0 or 1) rocks with randomized vertex jitter. They are flat-shaded (flatShading: true, roughness 0.95) and clustered in a rough circle of radius ~5 around the origin, poking 0.5-2.5 units above the water. One larger flattened central rock (about 4.5 x 1.5 x 4.5) serves as the base for the lighthouse and the cottage. Seed the jitter with a fixed seed.",
+      "colors": [
+        "#2a2f38",
+        "#3a3f4a",
+        "#1c2028"
+      ],
+      "size": "cluster radius ~5 units, heights 0.5-2.5"
+    },
+    {
+      "id": "lighthouse-tower",
+      "name": "Striped lighthouse tower",
+      "description": "A slightly tapered CylinderGeometry (radiusTop 0.7, radiusBottom 1.0, height 7, 16 radial segments) on the central rock at about y=1.4. It carries 4 horizontal bands that alternate white and red. Build them either as stacked cylinder segments or with a vertical stripe shader on vertex y. A thin dark gallery ring (TorusGeometry or a flat cylinder lip, radius 0.95) sits at the top beneath the lantern room.",
+      "colors": [
+        "#f2efe6",
+        "#b8322c",
+        "#2a2f38"
+      ],
+      "size": "height 7, base radius 1.0"
+    },
+    {
+      "id": "lantern-room",
+      "name": "Glass lantern room",
+      "description": "A short 8-sided CylinderGeometry (radius 0.6, height 1.0) made of translucent glass (MeshPhysicalMaterial, transmission-like look via opacity 0.35, color tinted warm, emissive #ffb347 at low intensity). Thin vertical mullions are 8 dark boxes. A dark red conical cap (ConeGeometry radius 0.75, height 0.7, 8 segments) sits on top with a tiny sphere finial.",
+      "colors": [
+        "#ffe2a8",
+        "#2a2f38",
+        "#8a221e"
+      ],
+      "size": "radius 0.6, height 1.0 plus 0.7 cap"
+    },
+    {
+      "id": "lamp-core",
+      "name": "Glowing lamp core",
+      "description": "A small SphereGeometry (radius 0.25) at the lantern room's center using MeshBasicMaterial #fff4d6. Add a soft additive sprite halo around it: a radial-gradient CanvasTexture, generated in code, scale ~2.5, AdditiveBlending, depthWrite false. The halo scales up to ~4.5 and brightens during the bloom flash when the beam faces the camera.",
+      "colors": [
+        "#fff4d6",
+        "#ffd27a",
+        "#ffb347"
+      ],
+      "size": "core radius 0.25, halo 2.5-4.5"
+    },
+    {
+      "id": "beam-cone",
+      "name": "Rotating volumetric beam",
+      "description": "Two opposing cones (a classic double-sided lens beam), each a ConeGeometry (radius 6 at the far end, height 45, 32 segments, openEnded) rotated to lie horizontal with the apex at the lamp. Use a custom ShaderMaterial with AdditiveBlending, transparent, depthWrite false, side DoubleSide. Alpha falls off along the length (exp fade) and toward the cone edges (fresnel-like using view-dir · normal) for a soft volumetric look. Base opacity is ~0.18. Parent both cones and the SpotLight to a pivot Object3D at the lamp height. The pivot rotates around Y at exactly 2π per 10s, starting about 90° off the camera direction.",
+      "colors": [
+        "#ffd98a",
+        "#ffe9b8"
+      ],
+      "size": "length 45, end radius 6"
+    },
+    {
+      "id": "cottage",
+      "name": "Keeper's cottage",
+      "description": "A small BoxGeometry body (1.4 x 1.0 x 1.0) in off-white, flat-shaded, with a dark slate gable roof (an extruded triangular prism or a 4-sided ConeGeometry rotated 45°). A tiny chimney box sits on the roof. It stands on the central rock about 2 units from the tower. One window on the side facing the camera's average direction is a small emissive plane (0.3 x 0.3, #ffb347, emissive intensity 2) with a faint additive glow sprite.",
+      "colors": [
+        "#e8e6d8",
+        "#2a2f38",
+        "#ffb347"
+      ],
+      "size": "1.4 x 1.0 x 1.0 plus roof 0.6 high"
+    },
+    {
+      "id": "moon",
+      "name": "Pale crescent moon",
+      "description": "Place it low on the horizon, about 8-12° above the sea and roughly opposite the beam's start direction, at distance ~300. Build it as a billboard plane with a crescent drawn on a CanvasTexture (two offset circles, outer filled, inner cut out). Use MeshBasicMaterial with fog: false and a faint additive halo sprite. Add a subtle pale reflection streak on the ocean below it: a thin additive plane, low opacity.",
+      "colors": [
+        "#e8eef7",
+        "#b9c6e0"
+      ],
+      "size": "diameter ~14 at distance 300"
+    },
+    {
+      "id": "stars",
+      "name": "Star field",
+      "description": "About 600 Points with random positions on the upper sky hemisphere (y > 20), using PointsMaterial with sizeAttenuation false, size 1-1.5, transparent, and fog false. Opacity is globally modulated down ~40% during the beam bloom flash and gets a tiny per-loop twinkle that is periodic with 10s.",
+      "colors": [
+        "#cdd6f0",
+        "#ffffff"
+      ],
+      "size": "points, size 1-1.5px"
+    },
+    {
+      "id": "camera-rig",
+      "name": "Orbiting camera",
+      "description": "A PerspectiveCamera with FOV 45 and lookAt fixed near (0, 5, 0). It follows a gentle partial orbit: azimuth = baseAz + 0.35*sin(2π t/10), radius = 34 - 6*sin(π t/10)^2 so it eases in and back out, height = 9 + 1.5*sin(2π t/10). All values are periodic in 10s for a seamless loop. Choose baseAz so the beam (moving at 2π/10s) points nearest the camera at ~2.5s.",
+      "colors": [],
+      "size": "radius 28-34, height 7.5-10.5"
+    }
+  ]
+}

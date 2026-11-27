@@ -12,7 +12,7 @@ await client.connect(
   new StdioClientTransport({
     command: "node",
     args: ["dist/index.js"],
-    env: { ...process.env, ANIMATION_STUDIO_RUNNER: "mock", ANIMATION_STUDIO_OUTPUT_DIR: outputDir },
+    env: { ...process.env, ANIMATION_STUDIO_RUNNER: "mock", ANIMATION_STUDIO_BROWSER_CHECK: "off", ANIMATION_STUDIO_OUTPUT_DIR: outputDir },
     stderr: "ignore",
   }),
 );

@@ -3,6 +3,8 @@ import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { runPipeline } from "../agents/pipeline.js";
 import { MODES } from "../agents/roster.js";
+import { createChecker } from "../check/playwright.js";
+import type { AnimationChecker } from "../check/types.js";
 import { createRunner, type AgentRunner } from "../runners/index.js";
 import { animationDir } from "../util/paths.js";
 
@@ -19,7 +21,11 @@ export const createAnimationInput = {
     .describe('"2d" for an SVG/canvas animation, "3d" for a Three.js scene.'),
 };
 
-export function registerCreateAnimation(server: McpServer, runner: AgentRunner = createRunner()): void {
+export function registerCreateAnimation(
+  server: McpServer,
+  runner: AgentRunner = createRunner(),
+  checker: AnimationChecker | undefined = createChecker(),
+): void {
   server.registerTool(
     "create_animation",
     {
@@ -38,6 +44,7 @@ export function registerCreateAnimation(server: McpServer, runner: AgentRunner =
           prompt,
           mode,
           runner,
+          checker,
           outputDir: animationDir(prompt),
           onProgress: async (_stage, message) => {
             step += 1;
@@ -60,7 +67,9 @@ export function registerCreateAnimation(server: McpServer, runner: AgentRunner =
               text:
                 `Made a ${mode.toUpperCase()} animation: "${result.title}".\n` +
                 `Open it: ${pathToFileURL(result.htmlPath).href}\n` +
-                `All agent work is saved in ${result.outputDir}\n${status}`,
+                `All agent work is saved in ${result.outputDir}\n` +
+                (result.previewPath ? `Preview screenshot: ${result.previewPath}\n` : "") +
+                status,
             },
           ],
           structuredContent: { ...result },
