@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTimeZone>
+#include <QTimeZone>
 
 #include <algorithm>
 
@@ -26,7 +27,7 @@ bool readEntry(const QString& folder, HistoryEntry& e) {
   // Folders are named <UTC time>-<idea>; fall back to the file time for folders made elsewhere.
   e.created = QDateTime::fromString(dir.dirName().left(19), "yyyy-MM-ddTHH-mm-ss");
   if (e.created.isValid()) {
-    e.created.setTimeSpec(Qt::UTC);
+    e.created.setTimeZone(QTimeZone::utc());
     e.created = e.created.toLocalTime();
   } else {
     e.created = QFileInfo(dir.filePath("index.html")).lastModified();

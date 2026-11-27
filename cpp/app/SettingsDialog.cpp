@@ -26,6 +26,7 @@ AppSettings AppSettings::load() {
   a.outputDir = s.value("outputDir", defaultOutputDir()).toString();
   a.claudePath = s.value("claudePath").toString();
   a.model = s.value("model").toString();
+  a.ffmpegPath = s.value("ffmpegPath").toString();
   a.revisions = s.value("revisions", 2).toInt();
   a.browserCheck = s.value("browserCheck", true).toBool();
   a.offlineDemo = s.value("offlineDemo", false).toBool();
@@ -37,6 +38,7 @@ void AppSettings::save() const {
   s.setValue("outputDir", outputDir);
   s.setValue("claudePath", claudePath);
   s.setValue("model", model);
+  s.setValue("ffmpegPath", ffmpegPath);
   s.setValue("revisions", revisions);
   s.setValue("browserCheck", browserCheck);
   s.setValue("offlineDemo", offlineDemo);
@@ -60,6 +62,8 @@ SettingsDialog::SettingsDialog(const AppSettings& a, QWidget* parent) : QDialog(
   claudePath_->setPlaceholderText("claude (found on your PATH)");
   model_ = new QLineEdit(a.model);
   model_->setPlaceholderText("Your Claude Code default");
+  ffmpeg_ = new QLineEdit(a.ffmpegPath);
+  ffmpeg_->setPlaceholderText("ffmpeg (found on your PATH), needed for MP4 export");
   revisions_ = new QSpinBox;
   revisions_->setRange(0, 5);
   revisions_->setValue(a.revisions);
@@ -73,6 +77,7 @@ SettingsDialog::SettingsDialog(const AppSettings& a, QWidget* parent) : QDialog(
   form->addRow("Claude Code program", claudePath_);
   form->addRow("Model", model_);
   form->addRow("Reviewer fix rounds", revisions_);
+  form->addRow("ffmpeg program", ffmpeg_);
 
   auto* note = new QLabel("Agents run through your Claude Code login, so no API key is needed.");
   note->setWordWrap(true);
@@ -95,6 +100,7 @@ AppSettings SettingsDialog::result() const {
   a.outputDir = outputDir_->text().trimmed().isEmpty() ? AppSettings::defaultOutputDir() : outputDir_->text().trimmed();
   a.claudePath = claudePath_->text().trimmed();
   a.model = model_->text().trimmed();
+  a.ffmpegPath = ffmpeg_->text().trimmed();
   a.revisions = revisions_->value();
   a.browserCheck = browserCheck_->isChecked();
   a.offlineDemo = offlineDemo_->isChecked();

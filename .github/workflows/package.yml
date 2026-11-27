@@ -1,0 +1,121 @@
+name: Package desktop app
+
+# Builds installable apps for Windows, macOS and Linux.
+# Pull requests get the files as workflow artifacts; a v* tag attaches them to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths: ["cpp/**", ".github/workflows/package.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: "6.9.3"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          modules: qtwebengine qtwebchannel qtpositioning
+          cache: true
+      - name: Build
+        run: |
+          cmake -S cpp -B build -DCMAKE_BUILD_TYPE=Release -DSTUDIO_BUILD_APP=ON
+          cmake --build build --config Release --parallel
+          ctest --test-dir build -C Release --output-on-failure
+      - name: Bundle Qt
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item "build/Release/Claude Animation Studio.exe" dist/
+          Copy-Item build/Release/animation-studio.exe dist/
+          windeployqt --release --no-translations --compiler-runtime "dist/Claude Animation Studio.exe"
+      - name: Smoke test the CLI
+        run: dist\animation-studio.exe --runner mock --out out\mock "a bouncing ball"
+      - name: Installer and zip
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path cpp/CMakeLists.txt -Pattern 'VERSION (\d+\.\d+\.\d+)').Matches[0].Groups[1].Value
+          New-Item -ItemType Directory packages | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" "/DSourceDir=$PWD\dist" "/DAppVersion=$version" "/DOutputDir=$PWD\packages" cpp\packaging\windows\installer.iss
+          Compress-Archive -Path dist\* -DestinationPath "packages\Claude-Animation-Studio-$version-Windows-Portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: packages/*
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: qtwebengine qtwebchannel qtpositioning
+          cache: true
+      - name: Build
+        run: |
+          cmake -S cpp -B build -DCMAKE_BUILD_TYPE=Release -DSTUDIO_BUILD_APP=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure
+      - name: Bundle Qt and make a disk image
+        run: |
+          version=$(sed -nE 's/^project\(.* VERSION ([0-9.]+).*/\1/p' cpp/CMakeLists.txt)
+          cp build/animation-studio "build/Claude Animation Studio.app/Contents/MacOS/"
+          macdeployqt "build/Claude Animation Studio.app" -always-overwrite
+          codesign --force --deep --sign - "build/Claude Animation Studio.app"
+          mkdir -p packages dmg
+          cp -R "build/Claude Animation Studio.app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Claude Animation Studio" -srcfolder dmg -ov -format UDZO \
+            "packages/Claude-Animation-Studio-$version-macOS.dmg"
+      - name: Smoke test the CLI
+        run: '"build/Claude Animation Studio.app/Contents/MacOS/animation-studio" --runner mock --out out/mock "a bouncing ball"'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: packages/*
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*
+
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y qt6-base-dev qt6-webengine-dev libgl1-mesa-dev
+      - name: Build
+        run: |
+          cmake -S cpp -B build -DCMAKE_BUILD_TYPE=Release -DSTUDIO_BUILD_APP=ON -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel
+          ctest --test-dir build --output-on-failure
+      - name: Make a .deb
+        run: |
+          cd build && cpack -G DEB
+          mkdir -p ../packages && cp *.deb ../packages/
+      - name: Install and smoke test
+        run: |
+          sudo apt-get install -y ./packages/*.deb
+          animation-studio --runner mock --out out/mock "a bouncing ball"
+          test -f out/mock/index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: packages/*
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/*

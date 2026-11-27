@@ -14,12 +14,14 @@ include/studio/
   mock_runner.hpp         canned replies for tests and offline runs
   parse.hpp               pulls JSON and HTML out of model replies
   paths.hpp               output folder naming
+  gif.hpp                 streaming animated-GIF writer with per-frame median-cut palettes
   process.hpp             runs a program with stdin/stdout pipes (POSIX and Windows)
 cli/main.cpp              the animation-studio command
 app/                      the Qt 6 desktop app
   MainWindow              idea box, 2D/3D, style and length, live steps, preview, history
   StudioRun               runs the pipeline on a background thread, with Stop
   WebChecker              tests each animation in Qt's built-in Chromium (errors, does it move?)
+  Exporter                records the animation off screen, then writes a GIF or (with ffmpeg) an MP4
   Styles.h                style and length presets, and the "Surprise me" ideas
   History, SettingsDialog, Theme.h
 tests/test_main.cpp       engine tests (ctest)
@@ -34,3 +36,10 @@ require it or `OFF` to skip it.
 
 Settings read from the environment, same as the MCP server: `CLAUDE_CODE_PATH`,
 `ANIMATION_STUDIO_MODEL`, `ANIMATION_STUDIO_RUNNER`, `ANIMATION_STUDIO_OUTPUT_DIR`.
+
+## Packaging
+
+`.github/workflows/package.yml` builds a Windows installer and portable zip (windeployqt + Inno
+Setup, script in `packaging/windows/`), a macOS disk image (macdeployqt, ad-hoc signed) and a
+Linux `.deb` (`cpack -G DEB`). Pull requests get them as workflow artifacts; pushing a `v*` tag
+attaches them to a GitHub release.

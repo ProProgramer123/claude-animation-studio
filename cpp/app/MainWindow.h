@@ -17,6 +17,8 @@ class QPlainTextEdit;
 class QPushButton;
 class QStackedWidget;
 class QWebEngineView;
+class Exporter;
+class QProgressDialog;
 class WebChecker;
 
 /** The studio in one window: type an idea, pick 2D or 3D and a style, press Animate,
@@ -51,11 +53,14 @@ class MainWindow : public QMainWindow {
   void newAnimation();
   void openSettings();
   void updateElapsed();
+  void exportAs(int format);
 
   AppSettings settings_;
   bool forceOffline_;
   StudioRun* run_;
   WebChecker* checker_;
+  Exporter* exporter_;
+  QProgressDialog* exportProgress_ = nullptr;
   bool quitWhenDone_ = false;
   QString currentFolder_;
   QElapsedTimer elapsed_;
@@ -84,6 +89,7 @@ class MainWindow : public QMainWindow {
   QPushButton* openBrowser_;
   QPushButton* showFiles_;
   QPushButton* reuse_;
+  QPushButton* export_;
 
   QListWidget* history_;
   QVector<HistoryEntry> entries_;

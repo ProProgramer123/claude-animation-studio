@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "studio/claude_code_runner.hpp"
+#include "studio/gif.hpp"
 #include "studio/mock_runner.hpp"
 #include "studio/parse.hpp"
 #include "studio/paths.hpp"
@@ -249,6 +250,47 @@ TEST(pipeline_can_be_cancelled) {
   o.cancelled = [&] { return runner.calls.size() >= 2; };
   CHECK_THROWS(runPipeline(o), "cancelled");
   CHECK(runner.calls.size() == 2);
+}
+
+// ---- GIF export ----------------------------------------------------------------
+
+TEST(quantize_keeps_few_colours_exact) {
+  const uint8_t px[] = {255, 0, 0, 255, 0, 0, 255, 255, 255, 0, 0, 255, 10, 200, 30, 255};
+  std::vector<uint8_t> palette;
+  const auto idx = quantize(px, 4, 256, palette);
+  CHECK(idx[0] == idx[2]);
+  CHECK(idx[0] != idx[1] && idx[1] != idx[3]);
+  CHECK(palette[idx[3] * 3] == 10 && palette[idx[3] * 3 + 1] == 200 && palette[idx[3] * 3 + 2] == 30);
+}
+
+TEST(quantize_limits_palette) {
+  std::vector<uint8_t> px;
+  for (int i = 0; i < 4096; ++i) px.insert(px.end(), {uint8_t(i * 7), uint8_t(i * 13), uint8_t(i), 255});
+  std::vector<uint8_t> palette;
+  const auto idx = quantize(px.data(), 4096, 16, palette);
+  CHECK(*std::max_element(idx.begin(), idx.end()) < 16);
+}
+
+TEST(gif_writer_makes_a_looping_gif) {
+  const auto path = fs::temp_directory_path() / "studio-test.gif";
+  const int w = 64, h = 48;
+  {
+    GifWriter gif(path.string(), w, h);
+    std::vector<uint8_t> frame(w * h * 4);
+    for (int f = 0; f < 3; ++f) {
+      for (int i = 0; i < w * h; ++i) {
+        frame[i * 4] = uint8_t((i % w) * 4 + f * 40);
+        frame[i * 4 + 1] = uint8_t((i / w) * 5);
+        frame[i * 4 + 2] = uint8_t(f * 80);
+      }
+      gif.addFrame(frame.data(), 5);
+    }
+  }
+  const std::string data = readFile(path);
+  CHECK(data.rfind("GIF89a", 0) == 0);
+  CHECK(data.find("NETSCAPE2.0") != std::string::npos);
+  CHECK(data.back() == 0x3B);
+  CHECK(uint8_t(data[6]) == w && uint8_t(data[8]) == h);
 }
 
 // ---- Claude Code runner -------------------------------------------------------

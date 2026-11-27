@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
   parser.addOption(offline);
   parser.process(app);
 
+  QApplication::setWindowIcon(QIcon(":/icon-256.png"));
   applyTheme(app);
   MainWindow window(parser.isSet(offline));
   window.show();
