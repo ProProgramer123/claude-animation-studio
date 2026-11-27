@@ -1,5 +1,12 @@
 # Claude Animation Studio
 
+<p align="center">
+  <a href="https://github.com/ProProgramer123/claude-animation-studio/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ProProgramer123/claude-animation-studio?color=f0675a"></a>
+  <a href="https://github.com/ProProgramer123/claude-animation-studio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ProProgramer123/claude-animation-studio/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-7fb8ff"></a>
+  <a href="https://proprogramer123.github.io/claude-animation-studio/"><img alt="Website" src="https://img.shields.io/badge/website-live-b3a8c6"></a>
+</p>
+
 An AI animation studio that runs inside Claude Code. You describe an animation, a hidden
 director refines your prompt into a detailed brief, and five agents build it together in
 2D or 3D.
