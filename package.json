@@ -1,0 +1,51 @@
+{
+  "name": "claude-animation-studio",
+  "version": "0.1.0",
+  "description": "An AI animation studio for Claude Code: a hidden director refines your prompt and five agents build a 2D or 3D animation.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node scripts/smoke-test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ProProgramer123/claude-animation-studio.git"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "claude-code",
+    "animation",
+    "ai-agents",
+    "threejs",
+    "svg"
+  ],
+  "author": "ProProgramer123",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ProProgramer123/claude-animation-studio/issues"
+  },
+  "homepage": "https://github.com/ProProgramer123/claude-animation-studio#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "bin": {
+    "claude-animation-studio": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
