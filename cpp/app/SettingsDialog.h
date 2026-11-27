@@ -11,6 +11,7 @@ struct AppSettings {
   QString outputDir;
   QString claudePath;
   QString model;
+  QString ffmpegPath;
   int revisions = 2;
   bool browserCheck = true;
   bool offlineDemo = false;
@@ -30,6 +31,7 @@ class SettingsDialog : public QDialog {
   QLineEdit* outputDir_;
   QLineEdit* claudePath_;
   QLineEdit* model_;
+  QLineEdit* ffmpeg_;
   QSpinBox* revisions_;
   QCheckBox* browserCheck_;
   QCheckBox* offlineDemo_;

@@ -8,10 +8,13 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenu>
+#include <QProgressDialog>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPlainTextEdit>
@@ -26,6 +29,7 @@
 #include <QWebEngineSettings>
 #include <QWebEngineView>
 
+#include "Exporter.h"
 #include "Styles.h"
 #include "WebChecker.h"
 #include "studio/paths.hpp"
@@ -65,6 +69,35 @@ MainWindow::MainWindow(bool forceOffline, QWidget* parent)
 
   run_ = new StudioRun(this);
   checker_ = new WebChecker(this);
+  exporter_ = new Exporter(this);
+  connect(exporter_, &Exporter::progress, this, [this](int pct, const QString& text) {
+    if (!exportProgress_) return;
+    exportProgress_->setValue(pct);
+    exportProgress_->setLabelText(text);
+  });
+  connect(exporter_, &Exporter::finished, this, [this](const QString& path) {
+    if (exportProgress_) {
+      exportProgress_->reset();
+      exportProgress_->hide();
+    }
+    QMessageBox box(this);
+    box.setWindowTitle("Export finished");
+    box.setText("Saved " + QFileInfo(path).fileName());
+    box.setInformativeText(QDir::toNativeSeparators(path));
+    auto* open = box.addButton("Open", QMessageBox::AcceptRole);
+    auto* folder = box.addButton("Show folder", QMessageBox::ActionRole);
+    box.addButton(QMessageBox::Close);
+    box.exec();
+    if (box.clickedButton() == open) QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+    if (box.clickedButton() == folder) QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(path).absolutePath()));
+  });
+  connect(exporter_, &Exporter::failed, this, [this](const QString& message) {
+    if (exportProgress_) {
+      exportProgress_->reset();
+      exportProgress_->hide();
+    }
+    if (!message.isEmpty()) QMessageBox::warning(this, "Export failed", message);
+  });
   connect(run_, &StudioRun::progress, this, &MainWindow::onProgress);
   connect(run_, &StudioRun::finished, this, &MainWindow::onFinished);
   connect(run_, &StudioRun::failed, this, &MainWindow::onFailed);
@@ -264,20 +297,28 @@ QWidget* MainWindow::buildPreview() {
     idea_->setFocus();
   });
 
+  export_ = new QPushButton("Export");
+  export_->setToolTip("Save the animation as a GIF or an MP4 video");
+  auto* exportMenu = new QMenu(export_);
+  exportMenu->addAction("Animated GIF (for sharing)…", this, [this] { exportAs(int(Exporter::Format::Gif)); });
+  exportMenu->addAction("MP4 video…", this, [this] { exportAs(int(Exporter::Format::Mp4)); });
+  export_->setMenu(exportMenu);
+
   auto* text = new QVBoxLayout;
   text->addWidget(resultTitle_);
   text->addWidget(resultNote_);
   auto* bar = new QHBoxLayout;
   bar->setContentsMargins(16, 10, 16, 12);
   bar->addLayout(text, 1);
-  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_}) bar->addWidget(b);
+  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_, export_}) bar->addWidget(b);
+  export_->setObjectName("exportButton");
   auto* barWidget = new QWidget;
   barWidget->setLayout(bar);
   barWidget->setObjectName("resultBar");
 
   layout->addWidget(previewStack_, 1);
   layout->addWidget(barWidget);
-  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_}) b->setEnabled(false);
+  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_, export_}) b->setEnabled(false);
   return box;
 }
 
@@ -385,7 +426,7 @@ void MainWindow::animate() {
                         "<p>It usually takes a few minutes. You can keep watching the steps above.</p>");
   resultTitle_->setText(idea.left(80));
   resultNote_->setText(QString("%1 · %2").arg(mode == studio::Mode::ThreeD ? "3D" : "2D", style_->currentText()));
-  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_}) b->setEnabled(false);
+  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_, export_}) b->setEnabled(false);
   status_->setText("Starting the studio…");
   elapsed_.start();
   updateElapsed();
@@ -497,7 +538,7 @@ void MainWindow::showAnimation(const QString& folder) {
   previewStack_->setCurrentWidget(preview_);
   resultTitle_->setText(e.title);
   resultNote_->setText(QString("%1 · “%2”").arg(titleCase(e.mode), e.prompt.left(120)));
-  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_}) b->setEnabled(true);
+  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_, export_}) b->setEnabled(true);
 }
 
 void MainWindow::newAnimation() {
@@ -514,7 +555,47 @@ void MainWindow::newAnimation() {
       "<p>Type an idea above and press <b>Animate</b>.</p>");
   resultTitle_->clear();
   resultNote_->clear();
-  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_}) b->setEnabled(false);
+  for (auto* b : {reuse_, replay_, showFiles_, openBrowser_, export_}) b->setEnabled(false);
+}
+
+void MainWindow::exportAs(int f) {
+  const auto format = static_cast<Exporter::Format>(f);
+  if (currentFolder_.isEmpty() || exporter_->busy()) return;
+  const QString ffmpeg = Exporter::findFfmpeg(settings_.ffmpegPath);
+  if (format == Exporter::Format::Mp4 && ffmpeg.isEmpty()) {
+    QMessageBox::information(this, "MP4 needs ffmpeg",
+                             "MP4 export uses the free ffmpeg program, which isn't installed.<br><br>"
+                             "Install it from <a href='https://ffmpeg.org/download.html'>ffmpeg.org</a> "
+                             "(or <code>brew install ffmpeg</code>, <code>winget install ffmpeg</code>, "
+                             "<code>sudo apt install ffmpeg</code>), or set its location in Settings.<br><br>"
+                             "Animated GIF export works without it.");
+    return;
+  }
+  const QString ext = format == Exporter::Format::Gif ? "gif" : "mp4";
+  QString name = resultTitle_->text().trimmed();
+  name = QString::fromStdString(studio::slugify(name.toStdString()));
+  const QString suggested = QDir(currentFolder_).filePath(name + "." + ext);
+  const QString path = QFileDialog::getSaveFileName(
+      this, format == Exporter::Format::Gif ? "Save as GIF" : "Save as MP4", suggested,
+      format == Exporter::Format::Gif ? "Animated GIF (*.gif)" : "MP4 video (*.mp4)");
+  if (path.isEmpty()) return;
+
+  if (!exportProgress_) {
+    exportProgress_ = new QProgressDialog(this);
+    exportProgress_->setWindowTitle("Exporting");
+    exportProgress_->setWindowModality(Qt::WindowModal);
+    exportProgress_->setMinimumDuration(0);
+    exportProgress_->setAutoReset(false);
+    exportProgress_->setAutoClose(false);
+    exportProgress_->setMinimumWidth(380);
+    connect(exportProgress_, &QProgressDialog::canceled, exporter_, &Exporter::cancel);
+  }
+  exportProgress_->setRange(0, 100);
+  exportProgress_->setValue(0);
+  exportProgress_->setLabelText(QString("Recording the animation (about %1 seconds)…")
+                                    .arg(Exporter::animationSeconds(currentFolder_), 0, 'f', 0));
+  exportProgress_->show();
+  exporter_->start(currentFolder_, format, path, ffmpeg);
 }
 
 void MainWindow::openSettings() {
