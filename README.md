@@ -4,15 +4,34 @@ An AI animation studio that runs inside Claude Code. You describe an animation, 
 director refines your prompt into a detailed brief, and five agents build it together in
 2D or 3D.
 
-> **Status:** early development. The director and all five agents work end to end. See the [roadmap](#roadmap).
+<p align="center">
+  <img src="docs/paper-boat-2d.gif" alt="A paper boat sailing across a sunset sea, made in 2D mode" width="49%">
+  <img src="docs/lighthouse-3d.gif" alt="A lighthouse at night with its beam sweeping over the waves, made in 3D mode" width="49%">
+</p>
+<p align="center"><sub>
+  Left: <i>"a paper boat sailing across a sunset sea"</i> (2D). Right: <i>"a lighthouse on a rocky island at night, its beam sweeping over the waves"</i> (3D).<br>
+  Each was made from that one sentence. Open them yourself in <a href="examples"><code>examples/</code></a>.
+</sub></p>
 
-![A paper boat sailing across a sunset sea, made by the studio in 2D mode](docs/paper-boat-2d.png)
+> **Status:** early, but working end to end in both modes. See the [roadmap](#roadmap).
 
-*"a paper boat sailing across a sunset sea", 2D mode. The agents' full output is in [`examples/paper-boat-2d`](examples/paper-boat-2d).*
+## Quick start
 
-![A lighthouse on a rocky island at night, made by the studio in 3D mode](docs/lighthouse-3d.png)
+You need [Node.js](https://nodejs.org) 18+ and [Claude Code](https://code.claude.com), signed in.
 
-*"a lighthouse on a rocky island at night, its beam sweeping over the waves", 3D mode with Three.js. See [`examples/lighthouse-3d`](examples/lighthouse-3d).*
+```bash
+git clone https://github.com/ProProgramer123/claude-animation-studio.git
+cd claude-animation-studio
+npm install && npm run build
+npx playwright install chromium   # optional: lets the studio test each animation in a browser
+claude mcp add --scope user animation-studio -- node "$(pwd)/dist/index.js"
+```
+
+Then start Claude Code in any folder and ask:
+
+> Use the animation studio to make a 3D animation of a paper plane flying through clouds.
+
+A few minutes later you'll get a link to an HTML file. Open it in your browser.
 
 ## How it works
 
@@ -42,10 +61,11 @@ animations/2026-11-27T21-40-00-a-paper-boat/
 | `2d` | An animated SVG/canvas page you can open in a browser |
 | `3d` | A Three.js scene (loads Three.js from the jsDelivr CDN, so it needs an internet connection) |
 
-## Install
+## Setup in detail
 
-Requires Node.js 18 or newer and [Claude Code](https://code.claude.com), signed in. The agents run on your
-Claude Code login, so no API key is needed.
+### 1. Install
+
+The agents run on your own Claude Code login, so no API key is needed.
 
 ```bash
 git clone https://github.com/ProProgramer123/claude-animation-studio.git
@@ -54,23 +74,24 @@ npm install
 npm run build
 ```
 
-## Connect it to Claude Code
+### 2. Connect it to Claude Code
 
 From the repo folder:
 
 ```bash
-claude mcp add animation-studio -- node "$(pwd)/dist/index.js"
+claude mcp add --scope user animation-studio -- node "$(pwd)/dist/index.js"
 ```
 
-Then start Claude Code and ask for an animation, for example:
+`--scope user` makes the studio available in every folder. Leave it out to enable it only for the folder
+you run the command in. Check it's connected with `claude mcp list`.
 
-> Use the animation studio to make a 3D animation of a paper plane flying through clouds.
+### 3. Make an animation
 
-Claude Code calls the `create_animation` tool for you. A full run takes a few minutes, since six agents
-work one after another. If Claude Code gives up waiting, raise its tool timeout when you start it, for
-example `MCP_TOOL_TIMEOUT=900000 claude` (15 minutes).
+Start Claude Code and ask for an animation in plain words. Say "2D" or "3D" if you have a preference;
+2D is the default. Claude Code calls the `create_animation` tool for you.
 
-Animations are saved in an `animations/` folder inside the folder you started Claude Code from.
+A run takes a few minutes, since six agents work one after another. Animations are saved in an
+`animations/` folder inside the folder you started Claude Code from.
 
 ### Browser check (recommended)
 
@@ -98,7 +119,7 @@ Without it the studio still works and skips this check.
 Pass them with `claude mcp add`, for example:
 
 ```bash
-claude mcp add animation-studio -e ANIMATION_STUDIO_MODEL=sonnet -- node "$(pwd)/dist/index.js"
+claude mcp add --scope user animation-studio -e ANIMATION_STUDIO_MODEL=sonnet -- node "$(pwd)/dist/index.js"
 ```
 
 ## The `create_animation` tool
@@ -107,6 +128,17 @@ claude mcp add animation-studio -e ANIMATION_STUDIO_MODEL=sonnet -- node "$(pwd)
 | -------- | ---- | ------- | ----------- |
 | `prompt` | string | required | What the animation should show |
 | `mode` | `"2d"` or `"3d"` | `"2d"` | Which kind of animation to make |
+
+## Troubleshooting
+
+| Problem | Fix |
+| ------- | --- |
+| Claude Code stops waiting before the animation is done | Start it with a longer tool timeout: `MCP_TOOL_TIMEOUT=900000 claude` (15 minutes) |
+| "Could not start Claude Code" | Make sure `claude` works in your terminal, or set `CLAUDE_CODE_PATH` to its full path |
+| An agent fails with a sign-in or usage-limit error | Run `claude` on its own and sign in, or wait for your usage limit to reset |
+| "Skipping the browser check" in the logs | Run `npx playwright install chromium` in the repo folder, or ignore it: the studio still works |
+| A 3D animation shows a blank page | 3D pages load Three.js from jsDelivr, so check your internet connection |
+| The tool doesn't show up in Claude Code | Run `claude mcp list`. If it's missing, run the `claude mcp add` command again from the repo folder |
 
 ## Development
 
@@ -135,7 +167,12 @@ src/
 1. ~~Project setup and MCP server~~
 2. ~~Hidden director and the five agents~~
 3. ~~Real 2D (SVG/canvas) and 3D (Three.js) output, checked in a headless browser~~ (MP4 export later)
-4. Example animations, setup docs and a demo GIF
+4. ~~Example animations, setup docs and demo GIFs~~
+5. Ideas: MP4/GIF export, an API-key runner, more styles (pixel art, motion graphics), longer multi-scene films
+
+## Contributing
+
+Ideas, bug reports and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
