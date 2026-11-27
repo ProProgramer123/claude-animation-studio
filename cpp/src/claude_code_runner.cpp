@@ -72,11 +72,13 @@ std::string ClaudeCodeRunner::run(const AgentRequest& request) {
   // passes through the command line (claude is a .cmd script on some Windows installs).
   const TempFile system(request.system);
   const ProcessResult r =
-      runProcess(options_.command, arguments(system.path.string()), request.prompt, options_.timeout);
+      runProcess(options_.command, arguments(system.path.string()), request.prompt, options_.timeout,
+                 options_.cancelled);
   if (!r.started) {
     throw std::runtime_error("Could not start Claude Code (\"" + options_.command +
                              "\"). Is it installed and on your PATH? " + r.startError);
   }
+  if (r.stopped) throw std::runtime_error("The animation was cancelled.");
   if (r.timedOut) {
     throw std::runtime_error(agent + " agent timed out after " +
                              std::to_string(options_.timeout.count() / 1000) + "s");

@@ -147,6 +147,12 @@ PipelineResult runPipeline(const PipelineOptions& o) {
   save("review.json", pretty(json{{"revisions", result.revisions}, {"reviews", reviews}}));
   result.approved = review.approved;
   if (!review.approved) result.openIssues = review.issues;
+  // A short summary that apps read to list past animations.
+  save("result.json", pretty(json{{"title", result.title},
+                                  {"mode", std::string(modeName(o.mode))},
+                                  {"approved", result.approved},
+                                  {"revisions", result.revisions},
+                                  {"open_issues", result.openIssues}}));
   return result;
 }
 

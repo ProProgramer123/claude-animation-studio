@@ -1,5 +1,8 @@
 #include "studio/process.hpp"
 
+#include <algorithm>
+#include <chrono>
+
 #ifdef _WIN32
 
 #ifndef NOMINMAX
@@ -55,7 +58,8 @@ void drain(HANDLE h, std::string* out) {
 }  // namespace
 
 ProcessResult runProcess(const std::string& program, const std::vector<std::string>& args,
-                         const std::string& input, std::chrono::milliseconds timeout) {
+                         const std::string& input, std::chrono::milliseconds timeout,
+                         const std::function<bool()>& shouldStop) {
   ProcessResult result;
   SECURITY_ATTRIBUTES sa{sizeof sa, nullptr, TRUE};
   HANDLE inR, inW, outR, outW, errR, errW;
@@ -107,10 +111,16 @@ ProcessResult runProcess(const std::string& program, const std::vector<std::stri
     CloseHandle(inW);
   });
 
-  if (WaitForSingleObject(pi.hProcess, static_cast<DWORD>(timeout.count())) == WAIT_TIMEOUT) {
-    result.timedOut = true;
-    TerminateProcess(pi.hProcess, 1);
-    WaitForSingleObject(pi.hProcess, INFINITE);
+  const auto deadline = std::chrono::steady_clock::now() + timeout;
+  while (WaitForSingleObject(pi.hProcess, 200) == WAIT_TIMEOUT) {
+    const bool late = std::chrono::steady_clock::now() >= deadline;
+    const bool stop = !late && shouldStop && shouldStop();
+    if (late || stop) {
+      (late ? result.timedOut : result.stopped) = true;
+      TerminateProcess(pi.hProcess, 1);
+      WaitForSingleObject(pi.hProcess, INFINITE);
+      break;
+    }
   }
   inThread.join();
   outThread.join();
@@ -144,7 +154,8 @@ extern char** environ;
 namespace studio {
 
 ProcessResult runProcess(const std::string& program, const std::vector<std::string>& args,
-                         const std::string& input, std::chrono::milliseconds timeout) {
+                         const std::string& input, std::chrono::milliseconds timeout,
+                         const std::function<bool()>& shouldStop) {
   ProcessResult result;
   int inPipe[2], outPipe[2], errPipe[2];
   if (pipe(inPipe) || pipe(outPipe) || pipe(errPipe)) {
@@ -192,8 +203,8 @@ ProcessResult runProcess(const std::string& program, const std::vector<std::stri
   while (outFd >= 0 || errFd >= 0) {
     const auto left = std::chrono::duration_cast<std::chrono::milliseconds>(
         deadline - std::chrono::steady_clock::now());
-    if (left.count() <= 0) {
-      result.timedOut = true;
+    if (left.count() <= 0 || (shouldStop && shouldStop())) {
+      (left.count() <= 0 ? result.timedOut : result.stopped) = true;
       kill(pid, SIGTERM);
       break;
     }
@@ -202,7 +213,7 @@ ProcessResult runProcess(const std::string& program, const std::vector<std::stri
     if (inFd >= 0) fds[n++] = {inFd, POLLOUT, 0};
     if (outFd >= 0) fds[n++] = {outFd, POLLIN, 0};
     if (errFd >= 0) fds[n++] = {errFd, POLLIN, 0};
-    const int ready = poll(fds, static_cast<nfds_t>(n), static_cast<int>(std::min<long long>(left.count(), 1000)));
+    const int ready = poll(fds, static_cast<nfds_t>(n), static_cast<int>(std::min<long long>(left.count(), 200)));
     if (ready < 0 && errno != EINTR) break;
     for (int i = 0; i < n; ++i) {
       if (!fds[i].revents) continue;

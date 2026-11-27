@@ -41,3 +41,13 @@ jobs:
           [ -f cpp/build/Release/animation-studio.exe ] && exe=cpp/build/Release/animation-studio.exe
           "$exe" --runner mock --out out/mock "a bouncing ball"
           test -f out/mock/index.html
+
+  app:
+    name: Desktop app (Linux, Qt 6)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y qt6-base-dev qt6-webengine-dev libgl1-mesa-dev
+      - run: cmake -S cpp -B cpp/build -DCMAKE_BUILD_TYPE=Release -DSTUDIO_BUILD_APP=ON
+      - run: cmake --build cpp/build --parallel
+      - run: ctest --test-dir cpp/build --output-on-failure
