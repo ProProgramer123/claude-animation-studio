@@ -155,11 +155,13 @@ TEST(pipeline_runs_every_agent_and_saves_work) {
   CHECK(runner.calls[0].prompt.find("Mode: 2D") == 0);
   CHECK(runner.calls[0].prompt.find("a bouncing ball") != std::string::npos);
   for (const char* f : {"prompt.txt", "brief.md", "storyboard.json", "design.json", "animation.json",
-                        "index.html", "review.json"})
+                        "index.html", "review.json", "result.json"})
     CHECK(fs::exists(o.outputDir / f));
   CHECK(readFile(r.htmlPath).find("<svg") != std::string::npos);
   CHECK(progress.size() == 6);
   CHECK(progress.front() == "Director is refining the prompt");
+  const auto summary = nlohmann::json::parse(readFile(o.outputDir / "result.json"));
+  CHECK(summary["title"] == "Bouncing ball" && summary["mode"] == "2d" && summary["approved"] == true);
 }
 
 TEST(pipeline_3d_mode_reaches_every_agent) {
@@ -291,6 +293,15 @@ TEST(process_pipes_stdin_and_collects_output) {
 TEST(process_times_out) {
   const auto r = runProcess("sleep", {"5"}, "", std::chrono::milliseconds(200));
   CHECK(r.timedOut);
+}
+
+TEST(process_can_be_stopped) {
+  const auto start = std::chrono::steady_clock::now();
+  const auto r = runProcess("sleep", {"5"}, "", std::chrono::seconds(10), [&] {
+    return std::chrono::steady_clock::now() - start > std::chrono::milliseconds(100);
+  });
+  CHECK(r.stopped && !r.timedOut);
+  CHECK(std::chrono::steady_clock::now() - start < std::chrono::seconds(2));
 }
 
 TEST(claude_runner_talks_to_a_fake_cli) {

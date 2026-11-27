@@ -35,8 +35,13 @@ std::string MockRunner::run(const AgentRequest& request) {
     case StageId::Renderer:
       return is3d ? "```html\n<!doctype html><html><body><script type=\"module\">import * as THREE from \"three\";"
                     "</script></body></html>\n```"
-                  : "```html\n<!doctype html><html><body><svg viewBox=\"0 0 100 100\"><circle r=\"5\" "
-                    "fill=\"#e63946\"/></svg></body></html>\n```";
+                  : "```html\n<!doctype html><html><head><style>html,body{margin:0;height:100%;background:#cfe8ff}"
+                    "svg{display:block;width:100%;height:100%}</style></head><body><svg viewBox=\"0 0 100 60\" preserveAspectRatio=\"xMidYMid slice\">"
+                    "<rect y=\"52\" width=\"100\" height=\"8\" fill=\"#8fbf7a\"/>"
+                    "<circle cx=\"10\" cy=\"45\" r=\"6\" fill=\"#e63946\">"
+                    "<animate attributeName=\"cx\" values=\"10;90;10\" dur=\"4s\" repeatCount=\"indefinite\"/>"
+                    "<animate attributeName=\"cy\" values=\"45;12;45;12;45\" dur=\"2s\" repeatCount=\"indefinite\"/>"
+                    "</circle></svg></body></html>\n```";
     case StageId::Reviewer: {
       reviewCount_ += 1;
       const bool approved = reviewCount_ > rejectFirstReviews_;

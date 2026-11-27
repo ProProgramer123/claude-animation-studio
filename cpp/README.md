@@ -16,11 +16,21 @@ include/studio/
   paths.hpp               output folder naming
   process.hpp             runs a program with stdin/stdout pipes (POSIX and Windows)
 cli/main.cpp              the animation-studio command
+app/                      the Qt 6 desktop app
+  MainWindow              idea box, 2D/3D, style and length, live steps, preview, history
+  StudioRun               runs the pipeline on a background thread, with Stop
+  WebChecker              tests each animation in Qt's built-in Chromium (errors, does it move?)
+  Styles.h                style and length presets, and the "Surprise me" ideas
+  History, SettingsDialog, Theme.h
 tests/test_main.cpp       engine tests (ctest)
 ```
 
 `runPipeline` takes an `onProgress` callback and a `cancelled` check, which the desktop app
-uses to show each agent's progress live and to let you stop a run.
+uses to show each agent's progress live and to let you stop a run. Stopping also ends the
+`claude` process that is working at that moment.
+
+CMake builds the desktop app when it finds Qt 6 with WebEngine. Pass `-DSTUDIO_BUILD_APP=ON` to
+require it or `OFF` to skip it.
 
 Settings read from the environment, same as the MCP server: `CLAUDE_CODE_PATH`,
 `ANIMATION_STUDIO_MODEL`, `ANIMATION_STUDIO_RUNNER`, `ANIMATION_STUDIO_OUTPUT_DIR`.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,6 +16,8 @@ struct ClaudeCodeRunnerOptions {
   /** Model alias or id for --model. Empty: $ANIMATION_STUDIO_MODEL, then the person's Claude Code setting. */
   std::string model;
   std::chrono::milliseconds timeout{10 * 60 * 1000};
+  /** Polled while an agent runs; returning true stops it at once (run() then throws). */
+  std::function<bool()> cancelled;
 };
 
 /** Runs each agent as a one-shot `claude -p` call, so it uses the person's own
