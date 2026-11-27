@@ -40,6 +40,10 @@ Claude Animation Studio is also a native desktop app, written in C++ with Qt. Ty
 plays right in the window. Every animation you make is listed on the left, ready to replay, open
 in your browser, or tweak and try again.
 
+<p align="center">
+  <img src="docs/desktop-app.png" alt="The desktop app after making “fireflies lighting up a forest clearing at dusk” in the Watercolor style: all six steps are done and the animation plays in the window" width="90%">
+</p>
+
 You need a C++17 compiler, CMake 3.16+, Qt 6 with WebEngine, and
 [Claude Code](https://code.claude.com), signed in. Agents run through your Claude Code login,
 so no API key is needed.
