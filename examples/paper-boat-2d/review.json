@@ -1,0 +1,15 @@
+{
+  "revisions": 1,
+  "reviews": [
+    {
+      "approved": false,
+      "issues": [
+        "Loop seam glitch on the wake. In the script, wakeOp is track([[0,.55],[4.6,.55],[5,.7],[5.5,.55],[8.2,.55],[9.2,0],[9.9,0],[10,.55]]). From 9.9s to 10s the wake ramps back up to 0.55 opacity while it is still translated to x=1760. The wake paths reach 268px to the left, out to x≈1492, so a faint pink wedge fades in at the right edge for 0.1s and then disappears when the loop wraps. Fix: keep the wake invisible through the wrap and fade it in at the start instead. Replace the track with wakeOp = track([[0,0],[0.6,.55],[4.6,.55],[5,.7],[5.5,.55],[8.2,.55],[9.2,0],[10,0]], 'inOutSine'). The wake is off-screen at x≈-160..-428 during 0–0.6s, so the fade-in is never seen. Also change the initial attribute on <g id=\"wake\"> to opacity=\"0\" so the first frame matches."
+      ]
+    },
+    {
+      "approved": true,
+      "issues": []
+    }
+  ]
+}

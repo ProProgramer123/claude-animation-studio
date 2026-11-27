@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
-import { AGENTS, MODES } from "../pipeline.js";
+import { runPipeline } from "../agents/pipeline.js";
+import { MODES } from "../agents/roster.js";
+import { createRunner, type AgentRunner } from "../runners/index.js";
+import { animationDir } from "../util/paths.js";
 
 export const createAnimationInput = {
   prompt: z
@@ -15,36 +19,58 @@ export const createAnimationInput = {
     .describe('"2d" for an SVG/canvas animation, "3d" for a Three.js scene.'),
 };
 
-export function registerCreateAnimation(server: McpServer): void {
+export function registerCreateAnimation(server: McpServer, runner: AgentRunner = createRunner()): void {
   server.registerTool(
     "create_animation",
     {
       title: "Create animation",
       description:
         "Make a 2D or 3D animation from a prompt. A director refines the prompt, then five agents " +
-        "(storyboard, designer, animator, renderer, reviewer) build the animation together.",
+        "(storyboard, designer, animator, renderer, reviewer) build it together. Writes a self-contained " +
+        "HTML file and returns its path. Takes a few minutes.",
       inputSchema: createAnimationInput,
     },
-    async ({ prompt, mode }) => {
-      const job = {
-        status: "accepted",
-        mode,
-        prompt,
-        pipeline: ["director", ...AGENTS.map((a) => a.id)],
-        note: "The agent pipeline is not built yet. This server currently confirms the request only.",
-      };
-      return {
-        content: [
-          {
-            type: "text",
-            text:
-              `Request received for a ${mode.toUpperCase()} animation: "${prompt}".\n` +
-              `Pipeline: ${job.pipeline.join(" -> ")}.\n` +
-              job.note,
+    async ({ prompt, mode }, extra) => {
+      const progressToken = extra._meta?.progressToken;
+      let step = 0;
+      try {
+        const result = await runPipeline({
+          prompt,
+          mode,
+          runner,
+          outputDir: animationDir(prompt),
+          onProgress: async (_stage, message) => {
+            step += 1;
+            console.error(`[animation-studio] ${message}`);
+            if (progressToken !== undefined) {
+              await extra.sendNotification({
+                method: "notifications/progress",
+                params: { progressToken, progress: step, message },
+              });
+            }
           },
-        ],
-        structuredContent: job,
-      };
+        });
+        const status = result.approved
+          ? `Reviewer approved it${result.revisions ? ` after ${result.revisions} revision(s)` : ""}.`
+          : `Reviewer still had concerns after ${result.revisions} revision(s): ${result.openIssues.join("; ")}`;
+        return {
+          content: [
+            {
+              type: "text",
+              text:
+                `Made a ${mode.toUpperCase()} animation: "${result.title}".\n` +
+                `Open it: ${pathToFileURL(result.htmlPath).href}\n` +
+                `All agent work is saved in ${result.outputDir}\n${status}`,
+            },
+          ],
+          structuredContent: { ...result },
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `The studio could not finish: ${(err as Error).message}` }],
+        };
+      }
     },
   );
 }

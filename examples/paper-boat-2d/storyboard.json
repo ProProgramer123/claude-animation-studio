@@ -1,0 +1,48 @@
+{
+  "title": "Paper Boat at Sunset",
+  "duration_seconds": 10,
+  "scenes": [
+    {
+      "id": "s1-alive-entry",
+      "start": 0,
+      "end": 2,
+      "description": "The scene is already in motion when the frame opens. The sky runs from deep violet at the top through magenta and coral to molten gold at the horizon. A low, half-set sun sits on the horizon line. Thin, flat clouds glow pink on their undersides. Four layered wave bands in plum and rose undulate in parallax on sine-based 3–4s cycles, with the back bands moving slowest. A shimmering column of sun reflection stretches down toward the viewer. The cool-white origami paper boat, shaded in two tones with slightly crumpled edges, glides in from beyond the left edge. It is at about x=-10% at 0s and reaches about x=8% by 2s, already bobbing gently.",
+      "camera": "Static wide shot with the horizon at roughly 45% of frame height. Flat parallax only, no camera movement."
+    },
+    {
+      "id": "s2-glide",
+      "start": 2,
+      "end": 4.5,
+      "description": "The boat glides at a steady pace from about x=8% to x=42%. It bobs up and down and rocks ±4° in sync with the front wave band, on a sine cycle of about 3.5s. A faint V-shaped wake in pale rose trails behind it and fades out. The waves keep up their parallax motion, and the sun reflection shimmers with subtle horizontal flicker strips.",
+      "camera": "Static wide shot."
+    },
+    {
+      "id": "s3-hero-silhouette",
+      "start": 4.5,
+      "end": 5.75,
+      "description": "Hero beat. The boat crosses the sun's reflection column, which sits centered near x=50% and peaks at about 5s. Its two-tone white crossfades into a dark plum silhouette over about 0.4s, holds, and then begins to return. Around the hull, the reflection strips ripple outward in concentric horizontal bands that expand and widen. The bobbing and ±4° rocking continue without a break, and the wake glints gold for a moment.",
+      "camera": "Static wide shot. No zoom, so the moment stays quiet."
+    },
+    {
+      "id": "s4-recover",
+      "start": 5.75,
+      "end": 7,
+      "description": "The boat leaves the reflection and moves from about x=58% to x=70%. Its silhouette eases back to two-tone cool white over about 0.5s, and the reflection ripples settle back into the steady shimmer. The bob, the rock, and the V-wake continue in sync with the front wave.",
+      "camera": "Static wide shot."
+    },
+    {
+      "id": "s5-drift-exit",
+      "start": 7,
+      "end": 9.2,
+      "description": "The boat drifts toward the right edge, from about x=70% to x=110%, and fully exits around 9.2s. Its wake fades behind it. Small sparkles twinkle across the front and middle wave bands, scaling and fading in and out on staggered sine timings.",
+      "camera": "Static wide shot."
+    },
+    {
+      "id": "s6-loop-reset",
+      "start": 9.2,
+      "end": 10,
+      "description": "The sea is empty of the boat. Sparkles keep twinkling, and the waves and clouds continue on cycles that divide evenly into 10s (2.5s, 3.33s, 5s, 10s), so every layer matches its 0s state at the 10s mark. The boat's position wraps from off-screen right back to off-screen left, which hides the reset and makes the loop seamless. Under prefers-reduced-motion, all animation stops and the page shows a static frame at about 3.5s: the boat at about x=30%, level, with the wake visible and the waves at rest.",
+      "camera": "Static wide shot."
+    }
+  ]
+}

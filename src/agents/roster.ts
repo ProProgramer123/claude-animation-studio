@@ -1,20 +1,16 @@
-/**
- * The studio pipeline: a hidden director refines the prompt, then five agents
- * work in order, each handing its output to the next.
- *
- * Step 1 only describes the stages. The agents themselves arrive in Step 2.
- */
-
 export const MODES = ["2d", "3d"] as const;
 export type Mode = (typeof MODES)[number];
 
+export type StageId = "director" | "storyboard" | "designer" | "animator" | "renderer" | "reviewer";
+
 export interface Stage {
-  id: string;
+  id: StageId;
   name: string;
   role: string;
   hidden?: boolean;
 }
 
+/** The hidden director: the user never sees its output directly, only the finished animation. */
 export const DIRECTOR: Stage = {
   id: "director",
   name: "Director",

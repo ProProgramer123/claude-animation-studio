@@ -1,0 +1,184 @@
+{
+  "background": "Full-viewport SVG, viewBox 0 0 1600 900, preserveAspectRatio xMidYMid slice. The horizon sits at y=405 (45%). The sky above it is a vertical linear gradient: deep violet #2B1446 at the top, then #5A1F6B at 25%, magenta #B0306F at 55%, coral #F0675A at 82%, and molten gold #FFB347 at the horizon. A soft radial glow of #FFD27A at 0.5 opacity is centered on the sun and fades to transparent within about 500px. Below the horizon, the sea base is a vertical gradient from #7A2E5E at the horizon to #2E1033 at the bottom. Four wave bands are stacked over the sea, and a sun-reflection column runs down the center at x=800.",
+  "palette": [
+    "#2B1446",
+    "#5A1F6B",
+    "#B0306F",
+    "#F0675A",
+    "#FFB347",
+    "#FFE6A8",
+    "#7A2E5E",
+    "#5C2150",
+    "#43173F",
+    "#2E1033",
+    "#C4546F",
+    "#E88A8F",
+    "#F4F7FB",
+    "#C9D4E3",
+    "#9AA8C0",
+    "#3A1236"
+  ],
+  "lighting": "A single warm backlight comes from the half-set sun at center horizon. Everything except the boat is tinted warm gold, coral, or plum. The boat is lit cool-white from the upper left: its light facets are #F4F7FB and its shade facets are #C9D4E3. When the boat crosses the reflection column (about 4.5–5.75s), backlighting overwhelms it and it crossfades to a #3A1236 silhouette. Water highlights are thin gold and pale-rose strips. Cloud undersides take pink-coral rim light, and cloud tops fade into the violet sky.",
+  "elements": [
+    {
+      "id": "sky",
+      "name": "Sunset sky gradient",
+      "description": "A full-width rect from y=0 to y=405 filled with a linearGradient running violet → magenta → coral → gold top to bottom. It is static.",
+      "colors": [
+        "#2B1446",
+        "#5A1F6B",
+        "#B0306F",
+        "#F0675A",
+        "#FFB347"
+      ],
+      "size": "1600x405"
+    },
+    {
+      "id": "sun-glow",
+      "name": "Sun halo",
+      "description": "A large circle (r≈420) centered at (800,405) with a radialGradient from #FFD27A at 0.55 opacity to transparent. It breathes very slightly, with opacity going 0.5↔0.6 on a 5s sine cycle.",
+      "colors": [
+        "#FFD27A",
+        "#FFB347"
+      ],
+      "size": "r 420"
+    },
+    {
+      "id": "sun",
+      "name": "Half-set sun",
+      "description": "A circle of r=95 centered on (800,405), clipped by the horizon so only the top half shows. It has a radial gradient from a #FFF3C4 core to a #FFB347 rim. It is static and has no outline.",
+      "colors": [
+        "#FFF3C4",
+        "#FFE6A8",
+        "#FFB347"
+      ],
+      "size": "r 95 (semicircle visible)"
+    },
+    {
+      "id": "clouds",
+      "name": "Thin flat clouds",
+      "description": "There are 3 flat, elongated cloud shapes, each a rounded path made of overlapping ellipses with a flat bottom edge. Cloud A is about 380x26 at (180,150), Cloud B is about 300x20 at (1050,110), and Cloud C is about 220x16 at (1250,250). Each one has a vertical gradient from #6B2A72 (a slightly lighter sky tone) at the top to a glowing #F7889A pink underside, with a 3px #FFC0A0 rim along the bottom edge. Each drifts horizontally by ±20px on a 10s sine cycle, so it loops seamlessly.",
+      "colors": [
+        "#6B2A72",
+        "#C94A7E",
+        "#F7889A",
+        "#FFC0A0"
+      ],
+      "size": "220–380 wide, 16–26 tall"
+    },
+    {
+      "id": "sea-base",
+      "name": "Sea base",
+      "description": "A rect from y=405 to y=900 with a vertical gradient from #7A2E5E to #2E1033. It sits behind the wave bands.",
+      "colors": [
+        "#7A2E5E",
+        "#2E1033"
+      ],
+      "size": "1600x495"
+    },
+    {
+      "id": "sun-reflection",
+      "name": "Sun reflection column",
+      "description": "A tapered column centered at x=800, about 180px wide at the horizon and widening to about 420px at the bottom. It is made of about 14 horizontal rounded strips (pill rects 4–10px tall) whose widths vary and shrink with distance. They use gold #FFD27A near the horizon and shift to #FFE6A8 and rose #E88A8F lower down, at opacity 0.35–0.85. Each strip jitters scaleX 0.85↔1.1 and opacity on staggered sine timings (2.5s and 5s periods) to create the shimmer. A soft vertical linearGradient mask fades the column toward the bottom. During the hero beat (4.5–5.75s), the strips nearest the boat's waterline expand scaleX up to 1.35 in a ripple that travels outward from the hull.",
+      "colors": [
+        "#FFE6A8",
+        "#FFD27A",
+        "#FFB347",
+        "#E88A8F"
+      ],
+      "size": "180→420 wide, from y 405 to y 900"
+    },
+    {
+      "id": "wave-band-1",
+      "name": "Back wave band",
+      "description": "The farthest band. It is a filled path with a gentle sine top edge (amplitude 4px, wavelength 400px), with its top at y≈430 and its fill reaching the bottom of the frame. It is drawn 2x wide and translates horizontally by one wavelength over 10s, which is the slowest parallax and loops seamlessly. It sits semi-transparent above the reflection so the column shows through.",
+      "colors": [
+        "#6E2858"
+      ],
+      "size": "3200 wide, top y≈430"
+    },
+    {
+      "id": "wave-band-2",
+      "name": "Mid-back wave band",
+      "description": "A sine-top path with amplitude 6px and wavelength 320px, with its top at y≈500. It translates one wavelength per 5s. Its fill is #5C2150 at 0.85 opacity, with a faint #C4546F 2px highlight along the crest.",
+      "colors": [
+        "#5C2150",
+        "#C4546F"
+      ],
+      "size": "3200 wide, top y≈500"
+    },
+    {
+      "id": "wave-band-3",
+      "name": "Mid-front wave band",
+      "description": "A sine-top path with amplitude 9px and wavelength 260px, with its top at y≈610. It translates one wavelength per 3.33s. Its fill is #43173F at 0.9 opacity, with a #E88A8F 2px crest highlight at 0.5 opacity.",
+      "colors": [
+        "#43173F",
+        "#E88A8F"
+      ],
+      "size": "3200 wide, top y≈610"
+    },
+    {
+      "id": "wave-band-4",
+      "name": "Front wave band",
+      "description": "The closest band. It is a sine-top path with amplitude 14px and wavelength 400px, with its top at y≈700. It translates one wavelength per 2.5s, which is the fastest parallax. Its fill is #2E1033, with a #C4546F 3px crest highlight at 0.6 opacity. The boat rides on the surface just above this band, and its bob and rock are synced to this band's phase.",
+      "colors": [
+        "#2E1033",
+        "#C4546F"
+      ],
+      "size": "3200 wide, top y≈700"
+    },
+    {
+      "id": "boat",
+      "name": "Origami paper boat",
+      "description": "The boat is drawn in a group whose origin is at the hull's center waterline, about 150px wide and 95px tall. Its pieces are: (1) the hull, a trapezoid that is wide at the top (150px) and narrower at the bottom (100px), 30px tall, split into two facets along a center fold, with the left facet #F4F7FB and the right facet #C9D4E3; (2) a central sail, a tall triangle with its apex 65px above the hull, split vertically into a #F4F7FB left facet and a #C9D4E3 right facet; (3) two small side triangles where the hull's ends fold up, in #DDE4EE and #9AA8C0. To make it feel crumpled, each polygon vertex is nudged 1–3px off true and two edges get a tiny notch. A thin #9AA8C0 fold crease appears only as a color boundary, never as a stroke. The boat travels x from -10% to 110% across 0–9.2s at a steady rate and stays offscreen from 9.2–10s. It bobs ±6px and rocks ±4° on a 2.5s sine cycle phase-locked to wave-band-4. A silhouette overlay group of the same polygons, all filled #3A1236, crossfades to opacity 1 across 4.5–5.75s, peaking at about 5s, with a 0.4s ease-in and a 0.5s ease-out.",
+      "colors": [
+        "#F4F7FB",
+        "#DDE4EE",
+        "#C9D4E3",
+        "#9AA8C0",
+        "#3A1236"
+      ],
+      "size": "~150x95 px"
+    },
+    {
+      "id": "wake",
+      "name": "V-shaped wake",
+      "description": "Two thin tapered wedge paths trail behind (to the left of) the boat's waterline, diverging at about ±12° and each about 220px long. They have linearGradient fills that fade from #E88A8F at 0.55 opacity near the hull to 0 at the tail. They follow the boat's x but not its rotation, and their y follows the bob at half amplitude. During the hero beat the fill tints briefly to #FFD27A to glint gold, then returns. It fades out entirely as the boat exits.",
+      "colors": [
+        "#E88A8F",
+        "#FFD27A"
+      ],
+      "size": "~220px long, ~30px spread at tail"
+    },
+    {
+      "id": "hero-ripples",
+      "name": "Reflection ripples around hull",
+      "description": "There are 3 thin horizontal ellipse rings (rx 60→180, ry 4→10) centered on the boat's waterline, filled with nothing. Each is made of two gold pill strips so that it needs no stroke, or it can be drawn as an ellipse rendered with a gradient fill ring. They spawn staggered 0.3s apart between 4.6s and 5.6s, expanding and fading from 0.7 to 0 opacity. They are visible only during the hero beat.",
+      "colors": [
+        "#FFE6A8",
+        "#FFD27A"
+      ],
+      "size": "rx 60–180"
+    },
+    {
+      "id": "sparkles",
+      "name": "Water sparkles",
+      "description": "There are about 12 tiny four-point star shapes, each a diamond of two crossed thin rhombi, 6–12px across. They are scattered across wave bands 2–4, with about half inside or near the reflection column. Each one twinkles by scaling 0→1→0 and fading opacity 0→1→0 on sine timings with periods of 2.5s or 5s and staggered delays. They are more prominent in 7–10s, when a brightness multiplier ramps the group's opacity up, but some are present throughout so the loop stays seamless. The group's opacity also wraps back at 10s.",
+      "colors": [
+        "#FFF3C4",
+        "#FFE6A8",
+        "#FFD27A"
+      ],
+      "size": "6–12px"
+    },
+    {
+      "id": "vignette",
+      "name": "Soft vignette",
+      "description": "A full-frame radialGradient overlay that is transparent in the center and #1A0A22 at 0.35 opacity at the corners. It deepens the edges and keeps the focus on the sun and the boat's path. It is static.",
+      "colors": [
+        "#1A0A22"
+      ],
+      "size": "1600x900"
+    }
+  ]
+}
