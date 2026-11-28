@@ -60,6 +60,9 @@ int stepIndex(studio::StageId id) {
   return 0;
 }
 
+// The Sound menu's "Your music…" item.
+constexpr int kOwnMusicItem = 3;
+
 QString titleCase(const QString& mode) { return mode.toUpper(); }
 
 }  // namespace
@@ -185,6 +188,26 @@ QWidget* MainWindow::buildComposer() {
     }
   });
 
+  sound_ = new QComboBox;
+  sound_->addItems({"Music + effects", "Music only", "Effects only", "Your music…", "No sound"});
+  sound_->setToolTip("What the soundtrack has. Your own music plays with the studio's sound effects.");
+  connect(sound_, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
+    if (index != kOwnMusicItem) return;
+    const QString start = musicFile_.isEmpty() ? QDir::homePath() : QFileInfo(musicFile_).absolutePath();
+    const QString file = QFileDialog::getOpenFileName(this, "Choose your music", start,
+                                                      "Music (*.mp3 *.wav *.ogg *.oga *.opus *.flac)");
+    if (!file.isEmpty()) musicFile_ = file;
+    if (musicFile_.isEmpty()) {
+      sound_->setCurrentIndex(0);
+      return;
+    }
+    const QString name = QFileInfo(musicFile_).fileName();
+    sound_->setItemText(kOwnMusicItem, fontMetrics().elidedText(name, Qt::ElideMiddle, 130));
+    sound_->setItemData(kOwnMusicItem, musicFile_, Qt::ToolTipRole);
+  });
+
+  for (auto* box : {style_, length_, sound_}) box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+
   surprise_ = new QPushButton("Surprise me");
   surprise_->setToolTip("Fill in a random idea");
   connect(surprise_, &QPushButton::clicked, this, [this] {
@@ -212,6 +235,8 @@ QWidget* MainWindow::buildComposer() {
   row->addWidget(style_);
   row->addWidget(new QLabel("Length"));
   row->addWidget(length_);
+  row->addWidget(new QLabel("Sound"));
+  row->addWidget(sound_);
   row->addStretch(1);
   row->addWidget(surprise_);
   row->addWidget(stop_);
@@ -426,6 +451,14 @@ void MainWindow::animate() {
       buildPrompt(idea, stylePresets().at(style_->currentIndex()));
   const int preset = lengthPresets().at(length_->currentIndex()).seconds;
   const double lengthSeconds = preset < 0 ? customLength_ : preset;
+  studio::SoundOptions sound;
+  switch (sound_->currentIndex()) {
+    case 1: sound.effects = false; break;
+    case 2: sound.music = false; break;
+    case kOwnMusicItem: sound.musicFile = std::filesystem::u8path(musicFile_.toStdString()); break;
+    case 4: sound.music = sound.effects = false; break;
+    default: break;
+  }
 
   QDir().mkpath(settings_.outputDir);
   const auto dir = studio::animationDir(idea.toStdString(), std::filesystem::u8path(settings_.outputDir.toStdString()));
@@ -450,7 +483,7 @@ void MainWindow::animate() {
   updateElapsed();
   tick_.start();
   setRunning(true);
-  run_->start(prompt, mode, lengthSeconds, studio::SoundOptions{}, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
+  run_->start(prompt, mode, lengthSeconds, sound, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
 }
 
 void MainWindow::onProgress(studio::StageId stage, const QString& message) {
@@ -504,6 +537,7 @@ void MainWindow::setRunning(bool running) {
   idea_->setReadOnly(running);
   style_->setEnabled(!running);
   length_->setEnabled(!running);
+  sound_->setEnabled(!running);
   for (auto* b : modeGroup_->buttons()) b->setEnabled(!running);
   history_->setEnabled(!running);
   if (!running) tick_.stop();
@@ -611,7 +645,7 @@ void MainWindow::exportAs(int f) {
   exportProgress_->setRange(0, 100);
   exportProgress_->setValue(0);
   exportProgress_->setLabelText(QString("Recording the animation (about %1 seconds)…")
-                                    .arg(Exporter::animationSeconds(currentFolder_), 0, 'f', 0));
+                                    .arg(Exporter::animationSeconds(currentFolder_, format), 0, 'f', 0));
   exportProgress_->show();
   exporter_->start(currentFolder_, format, path, ffmpeg);
 }

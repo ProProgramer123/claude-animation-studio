@@ -297,6 +297,67 @@ TEST(effects_only_is_asked_for) {
   CHECK(runner.calls[4].prompt.find("sound effects only") != std::string::npos);
 }
 
+TEST(own_music_is_copied_and_played_with_effects) {
+  const auto src = tempDir("ownmusic-src");
+  fs::create_directories(src);
+  writeWav((src / "My Song.MP3").string(), std::vector<float>(2000, 0.1f));  // any bytes will do
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound.musicFile = src / "My Song.MP3";
+  o.runner = &runner;
+  o.outputDir = tempDir("ownmusic");
+  const auto r = runPipeline(o);
+  CHECK(r.musicPath && r.musicPath->filename() == "music.mp3");
+  CHECK(readFile(*r.musicPath) == readFile(src / "My Song.MP3"));
+  CHECK(runner.calls[4].prompt.find("bring their own music") != std::string::npos);
+  CHECK(r.soundtrackPath);  // the effects
+  const std::string html = readFile(r.htmlPath);
+  CHECK(html.find("[\"soundtrack.wav\",\"music.mp3\"]") != std::string::npos);
+  const auto result = nlohmann::json::parse(readFile(o.outputDir / "result.json"));
+  CHECK(result["music_file"] == "music.mp3" && result["soundtrack"] == "soundtrack.wav" && result["sound"] == true);
+}
+
+TEST(own_music_without_effects_skips_the_sound_agent) {
+  const auto src = tempDir("ownmusic2-src");
+  fs::create_directories(src);
+  writeWav((src / "song.ogg").string(), std::vector<float>(2000, 0.1f));
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound.effects = false;
+  o.sound.musicFile = src / "song.ogg";
+  o.runner = &runner;
+  o.outputDir = tempDir("ownmusic2");
+  const auto r = runPipeline(o);
+  CHECK(runner.calls.size() == 6);
+  CHECK(!r.soundtrackPath && r.musicPath);
+  CHECK(readFile(r.htmlPath).find("[\"music.ogg\"]") != std::string::npos);
+}
+
+TEST(bad_music_files_are_refused) {
+  const auto src = tempDir("badmusic");
+  fs::create_directories(src);
+  std::ofstream(src / "song.m4a") << "x";
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.runner = &runner;
+  o.outputDir = tempDir("badmusic-out");
+  o.sound.musicFile = src / "missing.mp3";
+  CHECK_THROWS(runPipeline(o), "Could not find the music file");
+  o.sound.musicFile = src / "song.m4a";
+  CHECK_THROWS(runPipeline(o), "MP3, WAV, OGG");
+  CHECK(isSupportedMusicFile("a.FLAC") && isSupportedMusicFile("b.opus") && !isSupportedMusicFile("c.aac"));
+}
+
+TEST(player_file_names_cannot_close_the_script) {
+  const std::string page = addSoundtrackPlayer("<body></body>", 4, {"a</script>.mp3"});
+  CHECK(page.find("a</script>.mp3") == std::string::npos);
+  CHECK(page.find("a<\\/script>.mp3") != std::string::npos);
+  CHECK(addSoundtrackPlayer("<body></body>", 4, {}) == "<body></body>");
+}
+
 // ---- soundtrack ------------------------------------------------------------------
 
 TEST(score_parsing_keeps_valid_parts) {

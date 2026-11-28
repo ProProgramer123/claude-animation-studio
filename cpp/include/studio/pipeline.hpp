@@ -33,12 +33,19 @@ struct Review {
   std::vector<std::string> issues;
 };
 
-/** Which parts of the soundtrack to make. Both off: no Sound agent, no soundtrack. */
+/** Which parts of the soundtrack to make. Both off: no Sound agent, no soundtrack.
+ *  With musicFile set, that file is the music (copied next to the animation as music.<ext>),
+ *  so the synthesizer makes only the effects, if they are on. */
 struct SoundOptions {
   bool music = true;
   bool effects = true;
-  bool any() const { return music || effects; }
+  std::filesystem::path musicFile;
+  bool ownMusic() const { return !musicFile.empty(); }
+  bool any() const { return music || effects || ownMusic(); }
 };
+
+/** Audio formats a music file may have: ones the app's preview and every browser can play. */
+bool isSupportedMusicFile(const std::filesystem::path& file);
 
 struct PipelineOptions {
   std::string prompt;
@@ -69,8 +76,10 @@ struct PipelineResult {
   std::vector<std::string> openIssues;
   /** Length the animation and soundtrack were made for, in seconds. */
   double durationSeconds = 0;
-  /** soundtrack.wav, when sound was made. */
+  /** soundtrack.wav, when the synthesizer made music or effects. */
   std::optional<std::filesystem::path> soundtrackPath;
+  /** The person's own music, copied next to the animation (music.mp3 and so on). */
+  std::optional<std::filesystem::path> musicPath;
   /** Screenshot of the finished animation, when the browser check ran. */
   std::optional<std::filesystem::path> previewPath;
 };
@@ -85,8 +94,9 @@ struct Cancelled : std::runtime_error {
  *  Every stage's output is saved next to the final index.html. Throws std::runtime_error on failure. */
 PipelineResult runPipeline(const PipelineOptions& options);
 
-/** Adds the soundtrack player (soundtrack.wav, looping in time with the animation, with a mute
- *  button) to an HTML page. Exposed for tests and for apps that swap the soundtrack. */
-std::string addSoundtrackPlayer(const std::string& html, double durationSeconds);
+/** Adds the soundtrack player to an HTML page: each track (a file name next to the page) loops in
+ *  time with the animation, with one Sound on/off button. Adding it twice does nothing. */
+std::string addSoundtrackPlayer(const std::string& html, double durationSeconds,
+                                const std::vector<std::string>& tracks = {"soundtrack.wav"});
 
 }  // namespace studio

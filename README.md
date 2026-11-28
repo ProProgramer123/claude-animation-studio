@@ -58,8 +58,13 @@ whoosh and so on). The app plays that score through a synthesizer built into the
 as `soundtrack.wav`, so no samples or downloads are needed. The soundtrack loops in time with the
 animation, and a **Sound on/off** button sits in the corner of the page.
 
-When you like the result, press **Export** to save it as an animated GIF (built in) or an MP4
-video (needs [ffmpeg](https://ffmpeg.org/download.html) installed).
+The **Sound** menu picks what you get: music and effects, music only, effects only, or no sound.
+Choose **Your music…** to use a song of your own (MP3, WAV, OGG, Opus or FLAC). It plays in place of
+the studio's music, and the sound effects still land on the action.
+
+When you like the result, press **Export** to save it as an animated GIF (built in, silent, up to
+30 seconds) or an MP4 video with the sound included (up to 60 seconds; needs
+[ffmpeg](https://ffmpeg.org/download.html) installed).
 
 ### Install
 
@@ -95,6 +100,7 @@ The same engine has a command-line app too:
 ./cpp/build/animation-studio --mode 3d "a lighthouse at night"
 ./cpp/build/animation-studio --length 20 "fireworks over a harbor"   # exactly 20 seconds
 ./cpp/build/animation-studio --no-music "a door creaking open"       # effects only (or --no-effects, --no-sound)
+./cpp/build/animation-studio --music song.mp3 "a dance party"   # your own music, plus effects
 ./cpp/build/animation-studio --runner mock "anything"   # offline, with canned agents
 ```
 
@@ -124,6 +130,7 @@ animations/2026-11-27T21-40-00-a-paper-boat/
   animation.json    keyframes
   score.json        the music and sound effects (desktop and command-line apps)
   soundtrack.wav    the soundtrack, played by index.html
+  music.mp3         your own music, if you chose some
   index.html        the finished animation (open it in a browser)
   preview.png       a screenshot from the browser check
   review.json       the reviewer's notes and how many fix rounds it took
@@ -242,7 +249,8 @@ src/
 3. ~~Real 2D (SVG/canvas) and 3D (Three.js) output, checked in a headless browser~~ (MP4 export later)
 4. ~~Example animations, setup docs and demo GIFs~~
 5. ~~Native C++ app: engine and command line, Qt desktop window, GIF/MP4 export and installers~~
-6. Ideas: an API-key runner, longer multi-scene films, more style presets
+6. ~~Music and sound effects, your own music, custom lengths, MP4s with sound~~
+7. Ideas: an API-key runner, longer multi-scene films, more style presets
 
 ## Contributing
 
