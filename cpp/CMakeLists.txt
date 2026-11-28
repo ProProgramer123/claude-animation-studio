@@ -22,6 +22,7 @@ add_library(studio_core
   src/runner_factory.cpp
   src/pipeline.cpp
   src/gif.cpp
+  src/audio.cpp
 )
 target_include_directories(studio_core
   PUBLIC include
