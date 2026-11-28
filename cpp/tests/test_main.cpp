@@ -1,6 +1,7 @@
 // Engine tests. No framework: each TEST registers itself and main() runs them all.
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -10,6 +11,7 @@
 #include <vector>
 
 #include "studio/claude_code_runner.hpp"
+#include "studio/audio.hpp"
 #include "studio/gif.hpp"
 #include "studio/mock_runner.hpp"
 #include "studio/parse.hpp"
@@ -104,7 +106,7 @@ TEST(extractHtml_uppercase_fence) {
 
 TEST(roster_has_hidden_director_and_five_agents) {
   CHECK(director().hidden);
-  CHECK(agents().size() == 5);
+  CHECK(agents().size() == 6);
   CHECK(agents().front().key == "storyboard");
   CHECK(agents().back().key == "reviewer");
 }
@@ -151,15 +153,18 @@ TEST(pipeline_runs_every_agent_and_saves_work) {
   CHECK(r.approved);
   CHECK(r.revisions == 0);
   CHECK(r.title == "Bouncing ball");
-  CHECK(runner.calls.size() == 6);
+  CHECK(runner.calls.size() == 7);
   CHECK(runner.calls[0].agent == StageId::Director);
+  CHECK(runner.calls[4].agent == StageId::Sound);
   CHECK(runner.calls[0].prompt.find("Mode: 2D") == 0);
   CHECK(runner.calls[0].prompt.find("a bouncing ball") != std::string::npos);
   for (const char* f : {"prompt.txt", "brief.md", "storyboard.json", "design.json", "animation.json",
-                        "index.html", "review.json", "result.json"})
+                        "index.html", "review.json", "result.json", "score.json", "soundtrack.wav"})
     CHECK(fs::exists(o.outputDir / f));
   CHECK(readFile(r.htmlPath).find("<svg") != std::string::npos);
-  CHECK(progress.size() == 6);
+  CHECK(progress.size() == 7);
+  CHECK(readFile(r.htmlPath).find("soundtrack.wav") != std::string::npos);
+  CHECK(r.soundtrackPath && r.durationSeconds == 4);
   CHECK(progress.front() == "Director is refining the prompt");
   const auto summary = nlohmann::json::parse(readFile(o.outputDir / "result.json"));
   CHECK(summary["title"] == "Bouncing ball" && summary["mode"] == "2d" && summary["approved"] == true);
@@ -186,9 +191,9 @@ TEST(pipeline_sends_reviewer_issues_back_to_renderer) {
   const auto r = runPipeline(o);
   CHECK(r.approved);
   CHECK(r.revisions == 1);
-  CHECK(runner.calls.size() == 8);
-  CHECK(runner.calls[6].agent == StageId::Renderer);
-  CHECK(runner.calls[6].prompt.find("Ball never touches the ground.") != std::string::npos);
+  CHECK(runner.calls.size() == 9);
+  CHECK(runner.calls[7].agent == StageId::Renderer);
+  CHECK(runner.calls[7].prompt.find("Ball never touches the ground.") != std::string::npos);
 }
 
 TEST(pipeline_stops_after_max_revisions) {
@@ -219,8 +224,8 @@ TEST(browser_errors_block_approval_and_reach_renderer) {
   CHECK(checker.calls == 2);
   CHECK(r.approved);
   CHECK(r.revisions == 1);
-  CHECK(runner.calls[5].prompt.find("ReferenceError") != std::string::npos);  // reviewer saw it
-  CHECK(runner.calls[6].prompt.find("Fix this browser error: ReferenceError") != std::string::npos);
+  CHECK(runner.calls[6].prompt.find("ReferenceError") != std::string::npos);  // reviewer saw it
+  CHECK(runner.calls[7].prompt.find("Fix this browser error: ReferenceError") != std::string::npos);
   CHECK(r.previewPath && readFile(*r.previewPath) == "PNG");
 }
 
@@ -250,6 +255,197 @@ TEST(pipeline_can_be_cancelled) {
   o.cancelled = [&] { return runner.calls.size() >= 2; };
   CHECK_THROWS(runPipeline(o), "cancelled");
   CHECK(runner.calls.size() == 2);
+}
+
+TEST(custom_length_reaches_director_and_soundtrack) {
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.lengthSeconds = 25;
+  o.runner = &runner;
+  o.outputDir = tempDir("length");
+  const auto r = runPipeline(o);
+  CHECK(runner.calls[0].prompt.find("exactly 25 seconds") != std::string::npos);
+  CHECK(runner.calls[5].prompt.find("Total length: 25 seconds") != std::string::npos);
+  CHECK(r.durationSeconds == 25);
+  // 16-bit stereo at 44.1 kHz: 4 bytes per sample frame, plus a 44-byte header.
+  CHECK(fs::file_size(*r.soundtrackPath) == 44 + 25 * 44100 * 4);
+}
+
+TEST(no_sound_skips_the_sound_agent) {
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound = {false, false};
+  o.runner = &runner;
+  o.outputDir = tempDir("nosound");
+  const auto r = runPipeline(o);
+  CHECK(runner.calls.size() == 6);
+  CHECK(!r.soundtrackPath);
+  CHECK(!fs::exists(o.outputDir / "soundtrack.wav"));
+  CHECK(readFile(r.htmlPath).find("soundtrack.wav") == std::string::npos);
+}
+
+TEST(effects_only_is_asked_for) {
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound = {false, true};
+  o.runner = &runner;
+  o.outputDir = tempDir("fxonly");
+  runPipeline(o);
+  CHECK(runner.calls[4].prompt.find("sound effects only") != std::string::npos);
+}
+
+TEST(own_music_is_copied_and_played_with_effects) {
+  const auto src = tempDir("ownmusic-src");
+  fs::create_directories(src);
+  writeWav((src / "My Song.MP3").string(), std::vector<float>(2000, 0.1f));  // any bytes will do
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound.musicFile = src / "My Song.MP3";
+  o.runner = &runner;
+  o.outputDir = tempDir("ownmusic");
+  const auto r = runPipeline(o);
+  CHECK(r.musicPath && r.musicPath->filename() == "music.mp3");
+  CHECK(readFile(*r.musicPath) == readFile(src / "My Song.MP3"));
+  CHECK(runner.calls[4].prompt.find("bring their own music") != std::string::npos);
+  CHECK(r.soundtrackPath);  // the effects
+  const std::string html = readFile(r.htmlPath);
+  CHECK(html.find("[\"soundtrack.wav\",\"music.mp3\"]") != std::string::npos);
+  const auto result = nlohmann::json::parse(readFile(o.outputDir / "result.json"));
+  CHECK(result["music_file"] == "music.mp3" && result["soundtrack"] == "soundtrack.wav" && result["sound"] == true);
+}
+
+TEST(own_music_without_effects_skips_the_sound_agent) {
+  const auto src = tempDir("ownmusic2-src");
+  fs::create_directories(src);
+  writeWav((src / "song.ogg").string(), std::vector<float>(2000, 0.1f));
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.sound.effects = false;
+  o.sound.musicFile = src / "song.ogg";
+  o.runner = &runner;
+  o.outputDir = tempDir("ownmusic2");
+  const auto r = runPipeline(o);
+  CHECK(runner.calls.size() == 6);
+  CHECK(!r.soundtrackPath && r.musicPath);
+  CHECK(readFile(r.htmlPath).find("[\"music.ogg\"]") != std::string::npos);
+}
+
+TEST(bad_music_files_are_refused) {
+  const auto src = tempDir("badmusic");
+  fs::create_directories(src);
+  std::ofstream(src / "song.m4a") << "x";
+  MockRunner runner;
+  PipelineOptions o;
+  o.prompt = "ball";
+  o.runner = &runner;
+  o.outputDir = tempDir("badmusic-out");
+  o.sound.musicFile = src / "missing.mp3";
+  CHECK_THROWS(runPipeline(o), "Could not find the music file");
+  o.sound.musicFile = src / "song.m4a";
+  CHECK_THROWS(runPipeline(o), "MP3, WAV, OGG");
+  CHECK(isSupportedMusicFile("a.FLAC") && isSupportedMusicFile("b.opus") && !isSupportedMusicFile("c.aac"));
+}
+
+TEST(player_file_names_cannot_close_the_script) {
+  const std::string page = addSoundtrackPlayer("<body></body>", 4, {"a</script>.mp3"});
+  CHECK(page.find("a</script>.mp3") == std::string::npos);
+  CHECK(page.find("a<\\/script>.mp3") != std::string::npos);
+  CHECK(addSoundtrackPlayer("<body></body>", 4, {}) == "<body></body>");
+}
+
+// ---- soundtrack ------------------------------------------------------------------
+
+TEST(score_parsing_keeps_valid_parts) {
+  const auto s = parseScore(nlohmann::json::parse(R"({
+    "music": {"tempo_bpm": 999, "key": "F#", "scale": "minor", "chords": ["i", "VI"],
+              "instruments": {"lead": "kazoo", "pad": "strings", "drums": "beat"},
+              "melody": [{"beat": 0, "degree": 2, "beats": 2}, {"oops": 1}]},
+    "effects": [{"t": 1.5, "type": "splash"}, {"t": 2, "type": "explosion"}, "junk"]})"));
+  CHECK(s.tempo == 180);
+  CHECK(s.key == "F#" && s.scale == "minor");
+  CHECK(s.chords.size() == 2);
+  CHECK(s.lead == "bell");  // unknown instrument falls back
+  CHECK(s.pad == "strings" && s.drums == "beat");
+  CHECK(s.melody.size() == 1 && s.melody[0].degree == 2);
+  CHECK(s.effects.size() == 1 && s.effects[0].type == "splash" && s.effects[0].time == 1.5);
+  CHECK(parseScore("not an object").music);  // defaults still make music
+}
+
+TEST(loop_tempo_fits_whole_bars) {
+  for (double secs : {2.0, 5.0, 7.3, 12.0, 60.0}) {
+    const double bars = loopTempo(100, secs) * secs / 240;
+    CHECK(std::fabs(bars - std::round(bars)) < 1e-9);
+  }
+}
+
+static double rms(const std::vector<float>& v, size_t from, size_t to) {
+  double e = 0;
+  for (size_t i = from; i < to; ++i) e += double(v[i]) * v[i];
+  return std::sqrt(e / double(to - from));
+}
+
+TEST(soundtrack_is_the_right_length_and_never_clips) {
+  Score score;
+  score.drums = "beat";
+  score.effects = {{1.0, "whoosh"}, {2.0, "chime"}};
+  const auto stereo = renderSoundtrack(score, 3.0);
+  CHECK(stereo.size() == size_t(3 * 44100 * 2));
+  float peak = 0;
+  for (float v : stereo) peak = std::max(peak, std::fabs(v));
+  CHECK(peak > 0.5f && peak <= 0.86f);
+}
+
+TEST(every_effect_makes_sound_at_its_time) {
+  for (const auto& type : soundEffectTypes()) {
+    Score score;
+    score.music = false;
+    score.effects = {{1.0, type, 1.0, 0}};
+    const auto st = renderSoundtrack(score, 4.0);
+    if (type == "rise") {  // a riser builds up to its time instead
+      score.effects[0].time = 3.0;
+      const auto r = renderSoundtrack(score, 4.0);
+      CHECK(rms(r, size_t(2.7 * 44100) * 2, size_t(3.0 * 44100) * 2) > 10 * rms(r, size_t(3.1 * 44100) * 2, r.size()));
+      continue;
+    }
+    const double before = rms(st, 0, size_t(0.9 * 44100) * 2);
+    const double after = rms(st, size_t(1.0 * 44100) * 2, size_t(1.3 * 44100) * 2);
+    if (!(after > 0.01 && after > before * 10)) throw Failure("effect is silent or mistimed: " + type);
+  }
+}
+
+TEST(music_only_and_effects_only) {
+  Score score;
+  score.effects = {{0.5, "pop"}};
+  SoundtrackOptions none;
+  none.music = false;
+  none.effects = false;
+  const auto silent = renderSoundtrack(score, 2.0, none);
+  CHECK(rms(silent, 0, silent.size()) == 0);
+  SoundtrackOptions fx;
+  fx.music = false;
+  const auto onlyFx = renderSoundtrack(score, 2.0, fx);
+  CHECK(rms(onlyFx, 0, size_t(0.45 * 44100) * 2) < 1e-4);  // nothing before the pop
+}
+
+TEST(wav_file_has_a_valid_header) {
+  const auto path = fs::temp_directory_path() / "studio-test.wav";
+  writeWav(path.string(), std::vector<float>(44100 * 2, 0.25f));
+  const std::string d = readFile(path);
+  CHECK(d.rfind("RIFF", 0) == 0 && d.substr(8, 8) == "WAVEfmt " && d.substr(36, 4) == "data");
+  CHECK(d.size() == 44 + 44100 * 4);
+}
+
+TEST(player_is_added_once_before_body_end) {
+  const std::string page = "<html><body><p>hi</p></BODY></html>";
+  const std::string once = addSoundtrackPlayer(page, 6);
+  CHECK(once.find("soundtrack.wav") < once.find("</BODY>"));
+  CHECK(once.find("const loop = 6") != std::string::npos);
+  CHECK(addSoundtrackPlayer(once, 6) == once);
 }
 
 // ---- GIF export ----------------------------------------------------------------

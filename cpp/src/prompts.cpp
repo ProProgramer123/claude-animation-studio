@@ -55,6 +55,24 @@ const std::string& systemPrompt(StageId id) {
       R"(Shape: {"loop": boolean, "tracks": [{"element": string, "easing"?: string, "keyframes":)",
       R"([{"t": number, "props": object}]}]}. Props are things like x, y, z, rotation, scale, opacity, color.)",
   });
+  static const std::string sound = join({
+      "You are the sound designer. Score the animation: background music that fits its mood, and sound effects",
+      "timed to the moments in the storyboard and keyframes (a splash when something lands in water, a whoosh",
+      "for fast movement, a chime when something appears). Use only a few effects, where they matter.",
+      "Times are in seconds from the start and must be inside the animation's length.",
+      kJsonOnly,
+      R"(Shape: {"music": {"mood": string, "tempo_bpm": number (50-180), "key": "C".."B" (with # or b),)",
+      R"("scale": "major"|"minor"|"pentatonic"|"minor-pentatonic"|"dorian"|"lydian",)",
+      R"("chords": string[] (Roman numerals, one per 4-beat bar, repeating, e.g. ["I","V","vi","IV"]),)",
+      R"("instruments": {"lead": "bell"|"piano"|"pluck"|"flute"|"synth"|"none", "pad": "warm"|"strings"|"none",)",
+      R"("bass": "soft"|"synth"|"none", "drums": "none"|"soft"|"beat"},)",
+      R"("melody"?: [{"beat": number, "degree": number (scale step, 0 = key note, 7 = octave up), "beats": number}],)",
+      R"("volume": number (0-1)}, "effects": [{"t": number, "type": "whoosh"|"pop"|"chime"|"bell"|"sparkle"|)",
+      R"("thud"|"boing"|"splash"|"wind"|"rain"|"click"|"zap"|"rise"|"rumble"|"bird", "volume": number (0-1),)",
+      R"("length"?: number (seconds, for wind, rain, rise and rumble)}]}.)",
+      "Leave out melody to have one written from the chords. Calm scenes suit slow tempos, a pad and a soft lead;",
+      "lively scenes suit faster tempos and drums.",
+  });
   static const std::string renderer = join({
       "You are the renderer. Turn the storyboard, design and keyframes into one complete, working HTML file.",
       "It must run when opened directly in a modern browser, fill the window, start automatically,",
@@ -74,6 +92,7 @@ const std::string& systemPrompt(StageId id) {
     case StageId::Storyboard: return storyboard;
     case StageId::Designer: return designer;
     case StageId::Animator: return animator;
+    case StageId::Sound: return sound;
     case StageId::Renderer: return renderer;
     case StageId::Reviewer: return reviewer;
   }

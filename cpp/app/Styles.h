@@ -8,12 +8,12 @@
 
 struct StylePreset {
   QString name;
-  QString instruction;  // empty for "Let the director choose"
+  QString instruction;  // empty for "Any style" (the director chooses)
 };
 
 inline const QVector<StylePreset>& stylePresets() {
   static const QVector<StylePreset> list{
-      {"Let the director choose", ""},
+      {"Any style", ""},
       {"Cartoon", "Bold outlines, bright flat colors and bouncy, exaggerated cartoon motion."},
       {"Watercolor", "Soft watercolor look: gentle washes of color, paper texture, slow calm motion."},
       {"Pixel art", "Retro pixel-art look with a limited palette and crisp, chunky pixels."},
@@ -28,12 +28,13 @@ inline const QVector<StylePreset>& stylePresets() {
 
 struct LengthPreset {
   QString name;
-  int seconds;  // 0: let the director choose
+  int seconds;  // 0: let the director choose; -1: ask for a custom length
 };
 
 inline const QVector<LengthPreset>& lengthPresets() {
-  static const QVector<LengthPreset> list{
-      {"Any length", 0}, {"Short (5 s)", 5}, {"Medium (10 s)", 10}, {"Long (15 s)", 15}};
+  static const QVector<LengthPreset> list{{"Any length", 0},     {"Short (5 s)", 5}, {"Medium (10 s)", 10},
+                                          {"Long (15 s)", 15},   {"Extra long (30 s)", 30},
+                                          {"Custom…", -1}};
   return list;
 }
 
@@ -56,10 +57,10 @@ inline const QStringList& sampleIdeas() {
   return list;
 }
 
-/** The full request sent to the director: the idea, plus the chosen style and length. */
-inline QString buildPrompt(const QString& idea, const StylePreset& style, const LengthPreset& length) {
+/** The request sent to the director: the idea, plus the chosen style. (The length is passed
+ *  to the engine separately, so the soundtrack is made the same length.) */
+inline QString buildPrompt(const QString& idea, const StylePreset& style) {
   QString prompt = idea.trimmed();
   if (!style.instruction.isEmpty()) prompt += "\n\nStyle: " + style.instruction;
-  if (length.seconds > 0) prompt += QString("\n\nLength: about %1 seconds.").arg(length.seconds);
   return prompt;
 }

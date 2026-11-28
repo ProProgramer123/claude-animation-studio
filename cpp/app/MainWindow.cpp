@@ -10,6 +10,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
@@ -36,7 +37,7 @@
 
 namespace {
 
-// The six steps people see. The first is the hidden director, shown without its name.
+// The seven steps people see. The first is the hidden director, shown without its name.
 struct StepInfo {
   studio::StageId id;
   const char* label;
@@ -47,16 +48,20 @@ const StepInfo kSteps[] = {
     {studio::StageId::Storyboard, "Storyboard", "Breaks the brief into scenes and timing"},
     {studio::StageId::Designer, "Designer", "Decides the characters, colors and objects"},
     {studio::StageId::Animator, "Animator", "Writes the movement and keyframes"},
+    {studio::StageId::Sound, "Sound", "Writes the music and times the sound effects"},
     {studio::StageId::Renderer, "Renderer", "Turns the plan into working animation code"},
     {studio::StageId::Reviewer, "Reviewer", "Checks the result and sends fixes back"},
 };
-constexpr int kStepCount = 6;
+constexpr int kStepCount = 7;
 
 int stepIndex(studio::StageId id) {
   for (int i = 0; i < kStepCount; ++i)
     if (kSteps[i].id == id) return i;
   return 0;
 }
+
+// The Sound menu's "Your music…" item.
+constexpr int kOwnMusicItem = 3;
 
 QString titleCase(const QString& mode) { return mode.toUpper(); }
 
@@ -168,6 +173,40 @@ QWidget* MainWindow::buildComposer() {
   style_->setToolTip("A look for the animation. The director takes it into the brief.");
   length_ = new QComboBox;
   for (const auto& l : lengthPresets()) length_->addItem(l.name);
+  length_->setToolTip("How long the animation runs. Custom lets you pick 2 to 60 seconds.");
+  connect(length_, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
+    const int customIndex = length_->count() - 1;
+    if (index != customIndex) return;
+    bool ok = false;
+    const int seconds = QInputDialog::getInt(this, "Custom length", "Length in seconds (2 to 60):",
+                                             customLength_ > 0 ? customLength_ : 20, 2, 60, 1, &ok);
+    if (ok) customLength_ = seconds;
+    if (customLength_ > 0) {
+      length_->setItemText(customIndex, QString("Custom (%1 s)").arg(customLength_));
+    } else {
+      length_->setCurrentIndex(0);
+    }
+  });
+
+  sound_ = new QComboBox;
+  sound_->addItems({"Music + effects", "Music only", "Effects only", "Your music…", "No sound"});
+  sound_->setToolTip("What the soundtrack has. Your own music plays with the studio's sound effects.");
+  connect(sound_, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
+    if (index != kOwnMusicItem) return;
+    const QString start = musicFile_.isEmpty() ? QDir::homePath() : QFileInfo(musicFile_).absolutePath();
+    const QString file = QFileDialog::getOpenFileName(this, "Choose your music", start,
+                                                      "Music (*.mp3 *.wav *.ogg *.oga *.opus *.flac)");
+    if (!file.isEmpty()) musicFile_ = file;
+    if (musicFile_.isEmpty()) {
+      sound_->setCurrentIndex(0);
+      return;
+    }
+    const QString name = QFileInfo(musicFile_).fileName();
+    sound_->setItemText(kOwnMusicItem, fontMetrics().elidedText(name, Qt::ElideMiddle, 130));
+    sound_->setItemData(kOwnMusicItem, musicFile_, Qt::ToolTipRole);
+  });
+
+  for (auto* box : {style_, length_, sound_}) box->setSizeAdjustPolicy(QComboBox::AdjustToContents);
 
   surprise_ = new QPushButton("Surprise me");
   surprise_->setToolTip("Fill in a random idea");
@@ -196,6 +235,8 @@ QWidget* MainWindow::buildComposer() {
   row->addWidget(style_);
   row->addWidget(new QLabel("Length"));
   row->addWidget(length_);
+  row->addWidget(new QLabel("Sound"));
+  row->addWidget(sound_);
   row->addStretch(1);
   row->addWidget(surprise_);
   row->addWidget(stop_);
@@ -407,7 +448,17 @@ void MainWindow::animate() {
   }
   const auto mode = modeGroup_->checkedId() == 1 ? studio::Mode::ThreeD : studio::Mode::TwoD;
   const QString prompt =
-      buildPrompt(idea, stylePresets().at(style_->currentIndex()), lengthPresets().at(length_->currentIndex()));
+      buildPrompt(idea, stylePresets().at(style_->currentIndex()));
+  const int preset = lengthPresets().at(length_->currentIndex()).seconds;
+  const double lengthSeconds = preset < 0 ? customLength_ : preset;
+  studio::SoundOptions sound;
+  switch (sound_->currentIndex()) {
+    case 1: sound.effects = false; break;
+    case 2: sound.music = false; break;
+    case kOwnMusicItem: sound.musicFile = std::filesystem::u8path(musicFile_.toStdString()); break;
+    case 4: sound.music = sound.effects = false; break;
+    default: break;
+  }
 
   QDir().mkpath(settings_.outputDir);
   const auto dir = studio::animationDir(idea.toStdString(), std::filesystem::u8path(settings_.outputDir.toStdString()));
@@ -432,7 +483,7 @@ void MainWindow::animate() {
   updateElapsed();
   tick_.start();
   setRunning(true);
-  run_->start(prompt, mode, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
+  run_->start(prompt, mode, lengthSeconds, sound, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
 }
 
 void MainWindow::onProgress(studio::StageId stage, const QString& message) {
@@ -486,6 +537,7 @@ void MainWindow::setRunning(bool running) {
   idea_->setReadOnly(running);
   style_->setEnabled(!running);
   length_->setEnabled(!running);
+  sound_->setEnabled(!running);
   for (auto* b : modeGroup_->buttons()) b->setEnabled(!running);
   history_->setEnabled(!running);
   if (!running) tick_.stop();
@@ -593,7 +645,7 @@ void MainWindow::exportAs(int f) {
   exportProgress_->setRange(0, 100);
   exportProgress_->setValue(0);
   exportProgress_->setLabelText(QString("Recording the animation (about %1 seconds)…")
-                                    .arg(Exporter::animationSeconds(currentFolder_), 0, 'f', 0));
+                                    .arg(Exporter::animationSeconds(currentFolder_, format), 0, 'f', 0));
   exportProgress_->show();
   exporter_->start(currentFolder_, format, path, ffmpeg);
 }

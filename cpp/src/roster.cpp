@@ -20,11 +20,12 @@ const Stage& director() {
   return d;
 }
 
-const std::array<Stage, 5>& agents() {
-  static const std::array<Stage, 5> list{{
+const std::array<Stage, 6>& agents() {
+  static const std::array<Stage, 6> list{{
       {StageId::Storyboard, "storyboard", "Storyboard", "Breaks the brief into scenes and timing."},
       {StageId::Designer, "designer", "Designer", "Decides the characters, colors and objects."},
       {StageId::Animator, "animator", "Animator", "Writes the movement and keyframes."},
+      {StageId::Sound, "sound", "Sound", "Writes the music and times the sound effects."},
       {StageId::Renderer, "renderer", "Renderer", "Turns the plan into working animation code."},
       {StageId::Reviewer, "reviewer", "Reviewer",
        "Checks the result and sends fixes back if something looks off."},

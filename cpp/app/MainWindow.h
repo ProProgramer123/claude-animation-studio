@@ -70,6 +70,9 @@ class MainWindow : public QMainWindow {
   QButtonGroup* modeGroup_;
   QComboBox* style_;
   QComboBox* length_;
+  int customLength_ = 0;  // seconds picked under "Custom…", 0 until chosen
+  QComboBox* sound_;
+  QString musicFile_;     // picked under "Your music…"
   QPushButton* animate_;
   QPushButton* stop_;
   QPushButton* surprise_;

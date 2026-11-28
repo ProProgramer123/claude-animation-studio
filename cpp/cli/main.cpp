@@ -20,6 +20,11 @@ void usage(std::ostream& out) {
   out << "Usage: animation-studio [options] \"what the animation should show\"\n\n"
          "Options:\n"
          "  --mode 2d|3d        2D (SVG/canvas) or 3D (Three.js). Default: 2d\n"
+         "  --length SECONDS    Exact length, 2 to 60. Default: the director chooses\n"
+         "  --no-music          Sound effects only\n"
+         "  --no-effects        Music only\n"
+         "  --no-sound          No soundtrack at all\n"
+         "  --music FILE        Use your own music (MP3, WAV, OGG, Opus or FLAC); effects are still added\n"
          "  --out DIR           Folder for the animation. Default: ./animations/<time>-<prompt>\n"
          "  --runner NAME       claude-code (default, uses your Claude Code login) or mock\n"
          "  --model NAME        Model alias or id passed to Claude Code\n"
@@ -36,6 +41,8 @@ int main(int argc, char** argv) {
   std::string prompt, runnerName, model, out;
   Mode mode = Mode::TwoD;
   int revisions = 2;
+  double length = 0;
+  studio::SoundOptions sound;
 
   for (int i = 1; i < argc; ++i) {
     const std::string arg = argv[i];
@@ -57,6 +64,18 @@ int main(int argc, char** argv) {
       const auto m = parseMode(value("--mode"));
       if (!m) { std::cerr << "--mode must be 2d or 3d\n"; return 2; }
       mode = *m;
+    } else if (arg == "--length") {
+      length = std::atof(value("--length").c_str());
+      if (length < 2 || length > 60) { std::cerr << "--length must be between 2 and 60 seconds\n"; return 2; }
+    } else if (arg == "--no-music") {
+      sound.music = false;
+    } else if (arg == "--no-effects") {
+      sound.effects = false;
+    } else if (arg == "--no-sound") {
+      sound.music = sound.effects = false;
+      sound.musicFile.clear();
+    } else if (arg == "--music") {
+      sound.musicFile = std::filesystem::u8path(value("--music"));
     } else if (arg == "--out") {
       out = value("--out");
     } else if (arg == "--runner") {
@@ -90,12 +109,16 @@ int main(int argc, char** argv) {
     options.mode = mode;
     options.runner = runner.get();
     options.maxRevisions = revisions;
+    options.lengthSeconds = length;
+    options.sound = sound;
     options.outputDir = out.empty() ? animationDir(prompt) : std::filesystem::absolute(out);
     options.onProgress = [](StageId, const std::string& message) { std::cerr << "• " << message << "\n"; };
 
     const PipelineResult r = runPipeline(options);
     std::cout << "Made a " << (mode == Mode::ThreeD ? "3D" : "2D") << " animation: \"" << r.title << "\"\n"
               << "Open it: " << r.htmlPath.string() << "\n";
+    if (r.soundtrackPath) std::cout << "Soundtrack: " << r.soundtrackPath->string() << "\n";
+    if (r.musicPath) std::cout << "Music: " << r.musicPath->string() << "\n";
     if (r.approved) {
       std::cout << "Reviewer approved it";
       if (r.revisions) std::cout << " after " << r.revisions << " revision(s)";

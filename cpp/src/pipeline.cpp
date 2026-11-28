@@ -1,10 +1,14 @@
 #include "studio/pipeline.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
 #include <fstream>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
 
+#include "studio/audio.hpp"
 #include "studio/parse.hpp"
 #include "studio/prompts.hpp"
 
@@ -56,7 +60,60 @@ Review mergeBrowserFindings(Review review, const std::optional<CheckResult>& res
   return review;
 }
 
+const char* kPlayerMarker = "<!-- studio-soundtrack -->";
+
 }  // namespace
+
+bool isSupportedMusicFile(const fs::path& file) {
+  std::string ext = file.extension().string();
+  for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  return ext == ".mp3" || ext == ".wav" || ext == ".ogg" || ext == ".oga" || ext == ".opus" || ext == ".flac";
+}
+
+std::string addSoundtrackPlayer(const std::string& html, double duration, const std::vector<std::string>& tracks) {
+  if (html.find(kPlayerMarker) != std::string::npos || tracks.empty()) return html;
+  std::string list = json(tracks).dump();
+  // Keep "</script>" in a file name from closing the script early.
+  for (size_t at = 0; (at = list.find("</", at)) != std::string::npos; at += 3) list.replace(at, 2, "<\\/");
+  // Plays every track in a loop from the moment the page starts, so they stay in step with the
+  // animation. Browsers may block sound until a click; then the button says so.
+  const std::string player = std::string(kPlayerMarker) + R"(
+<style>#studio-sound{position:fixed;right:12px;bottom:12px;z-index:2147483647;font:13px system-ui,sans-serif;
+border:0;border-radius:16px;padding:6px 11px;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;opacity:.75}
+#studio-sound:hover{opacity:1}</style>
+<script>(() => {
+  const loop = )" + std::to_string(duration) + R"(, start = performance.now();
+  const tracks = )" + list + R"(.map((src) => { const a = new Audio(src); a.loop = true; return a; });
+  const audio = tracks[0];
+  const button = document.createElement('button');
+  button.id = 'studio-sound';
+  let on = false;
+  const show = () => { button.textContent = on ? '\u{1F50A} Sound on' : '\u{1F507} Sound off'; };
+  const play = () => {
+    const t = (performance.now() - start) / 1000;
+    return Promise.all(tracks.map((a) => {
+      const length = isFinite(a.duration) && a.duration > 0 ? a.duration : loop;
+      try { a.currentTime = t % length; } catch (e) {}
+      return a.play();
+    })).then(() => { on = true; show(); });
+  };
+  const mute = () => { tracks.forEach((a) => a.pause()); on = false; show(); };
+  button.onclick = () => { if (on) mute(); else play().catch(() => {}); };
+  window.studioSound = { audio, tracks, start, play, mute };
+  const attach = () => {
+    document.body.appendChild(button);
+    show();
+    play().catch(() => { button.textContent = '\u{1F508} Click for sound'; });
+  };
+  document.body ? attach() : addEventListener('DOMContentLoaded', attach);
+})();</script>
+)";
+  std::string lower = html;
+  for (auto& c : lower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  const size_t body = lower.rfind("</body>");
+  if (body == std::string::npos) return html + "\n" + player;
+  return html.substr(0, body) + player + html.substr(body);
+}
 
 PipelineResult runPipeline(const PipelineOptions& o) {
   if (!o.runner) throw std::invalid_argument("runPipeline needs a runner");
@@ -72,7 +129,15 @@ PipelineResult runPipeline(const PipelineOptions& o) {
 
   save("prompt.txt", o.prompt + "\n");
 
-  std::string brief = ask(StageId::Director, "Client's idea:\n" + o.prompt, "Director is refining the prompt");
+  const double length = o.lengthSeconds > 0 ? std::clamp(o.lengthSeconds, 2.0, 60.0) : 0.0;
+  std::string idea = o.prompt;
+  if (length > 0) {
+    char buf[112];
+    std::snprintf(buf, sizeof buf, "\n\nLength: exactly %g seconds (this overrides the usual 3 to 15 seconds).", length);
+    idea += buf;
+  }
+
+  std::string brief = ask(StageId::Director, "Client's idea:\n" + idea, "Director is refining the prompt");
   {
     const auto a = brief.find_first_not_of(" \t\r\n");
     brief = a == std::string::npos ? "" : brief.substr(a, brief.find_last_not_of(" \t\r\n") - a + 1);
@@ -96,10 +161,61 @@ PipelineResult runPipeline(const PipelineOptions& o) {
       "animator");
   save("animation.json", pretty(animation));
 
-  const std::string plan = "Brief:\n" + brief + "\n\nStoryboard:\n" + storyboard.dump() + "\n\nDesign:\n" +
-                           design.dump() + "\n\nKeyframes:\n" + animation.dump();
-
   PipelineResult result;
+  double storyLength = 0;
+  if (storyboard.is_object() && storyboard.contains("duration_seconds") && storyboard["duration_seconds"].is_number())
+    storyLength = storyboard["duration_seconds"].get<double>();
+  result.durationSeconds = length > 0 ? length : std::clamp(storyLength > 0 ? storyLength : 8.0, 2.0, 60.0);
+
+  // The Sound agent scores the animation, and the built-in synthesizer turns the score into a WAV.
+  if (o.sound.ownMusic()) {
+    if (!fs::is_regular_file(o.sound.musicFile))
+      throw std::runtime_error("Could not find the music file: " + o.sound.musicFile.u8string());
+    if (!isSupportedMusicFile(o.sound.musicFile))
+      throw std::runtime_error("Use an MP3, WAV, OGG, Opus or FLAC file for your own music.");
+    std::string ext = o.sound.musicFile.extension().string();
+    for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    result.musicPath = o.outputDir / ("music" + ext);
+    fs::copy_file(o.sound.musicFile, *result.musicPath, fs::copy_options::overwrite_existing);
+  }
+  // The person's own music replaces the synthesized music.
+  const bool makeMusic = o.sound.music && !o.sound.ownMusic();
+  if (makeMusic || o.sound.effects) {
+    const std::string wants = makeMusic && o.sound.effects ? "music and sound effects"
+                              : makeMusic                  ? "music only (no sound effects)"
+                              : o.sound.ownMusic()
+                                  ? "sound effects only: they bring their own music, so leave out the music section"
+                                  : "sound effects only (no music)";
+    char len[64];
+    std::snprintf(len, sizeof len, "%g", result.durationSeconds);
+    const json score = extractJson(
+        ask(StageId::Sound,
+            "Brief:\n" + brief + "\n\nStoryboard:\n" + storyboard.dump() + "\n\nKeyframes:\n" + animation.dump() +
+                "\n\nLength: " + len + " seconds. The client wants " + wants + ".",
+            "Sound is writing the music and sound effects"),
+        "sound");
+    save("score.json", pretty(score));
+    SoundtrackOptions so;
+    so.music = makeMusic;
+    so.effects = o.sound.effects;
+    const auto samples = renderSoundtrack(parseScore(score), result.durationSeconds, so);
+    result.soundtrackPath = o.outputDir / "soundtrack.wav";
+    writeWav(result.soundtrackPath->string(), samples);
+  }
+
+  char lengthLine[192];
+  std::snprintf(lengthLine, sizeof lengthLine,
+                "\n\nTotal length: %g seconds. The animation must run exactly this long and then loop from the start%s.",
+                result.durationSeconds,
+                result.soundtrackPath || result.musicPath ? ", so it stays in time with its soundtrack" : "");
+  const std::string plan = "Brief:\n" + brief + "\n\nStoryboard:\n" + storyboard.dump() + "\n\nDesign:\n" +
+                           design.dump() + "\n\nKeyframes:\n" + animation.dump() + lengthLine;
+  std::vector<std::string> tracks;
+  if (result.soundtrackPath) tracks.push_back(result.soundtrackPath->filename().u8string());
+  if (result.musicPath) tracks.push_back(result.musicPath->filename().u8string());
+  const auto withSound = [&](const std::string& page) {
+    return addSoundtrackPlayer(page, result.durationSeconds, tracks);
+  };
   result.mode = o.mode;
   result.outputDir = o.outputDir;
   result.htmlPath = o.outputDir / "index.html";
@@ -112,7 +228,7 @@ PipelineResult runPipeline(const PipelineOptions& o) {
   json reviews = json::array();
 
   for (;;) {
-    save("index.html", html);
+    save("index.html", withSound(html));
 
     std::optional<CheckResult> browser;
     if (o.checker) {
@@ -151,6 +267,11 @@ PipelineResult runPipeline(const PipelineOptions& o) {
   save("result.json", pretty(json{{"title", result.title},
                                   {"mode", std::string(modeName(o.mode))},
                                   {"approved", result.approved},
+                                  {"duration_seconds", result.durationSeconds},
+                                  {"sound", !tracks.empty()},
+                                  {"soundtrack", result.soundtrackPath ? json(tracks.front()) : json(nullptr)},
+                                  {"music_file", result.musicPath ? json(result.musicPath->filename().u8string())
+                                                                  : json(nullptr)},
                                   {"revisions", result.revisions},
                                   {"open_issues", result.openIssues}}));
   return result;
