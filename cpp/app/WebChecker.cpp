@@ -76,6 +76,7 @@ std::optional<studio::CheckResult> WebChecker::check(const std::filesystem::path
     view->resize(960, 600);
     auto* page = new ProbePage(view);
     view->setPage(page);
+    page->setAudioMuted(true);  // the check runs in the background, so it stays silent
     view->show();
     page->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, true);
     page->settings()->setAttribute(QWebEngineSettings::PlaybackRequiresUserGesture, false);

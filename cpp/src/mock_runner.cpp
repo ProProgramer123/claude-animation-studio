@@ -32,6 +32,14 @@ std::string MockRunner::run(const AgentRequest& request) {
                                                 {{"t", 4}, {"props", {{"x", 100}, {"y", 0}}}},
                                             })}}})}}
           .dump();
+    case StageId::Sound:
+      return json{{"music", {{"mood", "playful"}, {"tempo_bpm", 110}, {"key", "C"}, {"scale", "major"},
+                             {"chords", {"I", "V", "vi", "IV"}},
+                             {"instruments", {{"lead", "bell"}, {"pad", "warm"}, {"bass", "soft"}, {"drums", "soft"}}},
+                             {"volume", 0.6}}},
+                  {"effects", json::array({{{"t", 1}, {"type", "boing"}, {"volume", 0.8}},
+                                           {{"t", 3}, {"type", "boing"}, {"volume", 0.8}}})}}
+          .dump();
     case StageId::Renderer:
       return is3d ? "```html\n<!doctype html><html><body><script type=\"module\">import * as THREE from \"three\";"
                     "</script></body></html>\n```"

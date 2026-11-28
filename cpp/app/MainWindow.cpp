@@ -10,6 +10,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
@@ -36,7 +37,7 @@
 
 namespace {
 
-// The six steps people see. The first is the hidden director, shown without its name.
+// The seven steps people see. The first is the hidden director, shown without its name.
 struct StepInfo {
   studio::StageId id;
   const char* label;
@@ -47,10 +48,11 @@ const StepInfo kSteps[] = {
     {studio::StageId::Storyboard, "Storyboard", "Breaks the brief into scenes and timing"},
     {studio::StageId::Designer, "Designer", "Decides the characters, colors and objects"},
     {studio::StageId::Animator, "Animator", "Writes the movement and keyframes"},
+    {studio::StageId::Sound, "Sound", "Writes the music and times the sound effects"},
     {studio::StageId::Renderer, "Renderer", "Turns the plan into working animation code"},
     {studio::StageId::Reviewer, "Reviewer", "Checks the result and sends fixes back"},
 };
-constexpr int kStepCount = 6;
+constexpr int kStepCount = 7;
 
 int stepIndex(studio::StageId id) {
   for (int i = 0; i < kStepCount; ++i)
@@ -168,6 +170,20 @@ QWidget* MainWindow::buildComposer() {
   style_->setToolTip("A look for the animation. The director takes it into the brief.");
   length_ = new QComboBox;
   for (const auto& l : lengthPresets()) length_->addItem(l.name);
+  length_->setToolTip("How long the animation runs. Custom lets you pick 2 to 60 seconds.");
+  connect(length_, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
+    const int customIndex = length_->count() - 1;
+    if (index != customIndex) return;
+    bool ok = false;
+    const int seconds = QInputDialog::getInt(this, "Custom length", "Length in seconds (2 to 60):",
+                                             customLength_ > 0 ? customLength_ : 20, 2, 60, 1, &ok);
+    if (ok) customLength_ = seconds;
+    if (customLength_ > 0) {
+      length_->setItemText(customIndex, QString("Custom (%1 s)").arg(customLength_));
+    } else {
+      length_->setCurrentIndex(0);
+    }
+  });
 
   surprise_ = new QPushButton("Surprise me");
   surprise_->setToolTip("Fill in a random idea");
@@ -407,7 +423,9 @@ void MainWindow::animate() {
   }
   const auto mode = modeGroup_->checkedId() == 1 ? studio::Mode::ThreeD : studio::Mode::TwoD;
   const QString prompt =
-      buildPrompt(idea, stylePresets().at(style_->currentIndex()), lengthPresets().at(length_->currentIndex()));
+      buildPrompt(idea, stylePresets().at(style_->currentIndex()));
+  const int preset = lengthPresets().at(length_->currentIndex()).seconds;
+  const double lengthSeconds = preset < 0 ? customLength_ : preset;
 
   QDir().mkpath(settings_.outputDir);
   const auto dir = studio::animationDir(idea.toStdString(), std::filesystem::u8path(settings_.outputDir.toStdString()));
@@ -432,7 +450,7 @@ void MainWindow::animate() {
   updateElapsed();
   tick_.start();
   setRunning(true);
-  run_->start(prompt, mode, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
+  run_->start(prompt, mode, lengthSeconds, studio::SoundOptions{}, currentFolder_, s, settings_.browserCheck ? checker_ : nullptr);
 }
 
 void MainWindow::onProgress(studio::StageId stage, const QString& message) {

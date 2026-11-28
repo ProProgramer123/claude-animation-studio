@@ -44,12 +44,19 @@ A few minutes later you'll get a link to an HTML file. Open it in your browser.
 
 Claude Animation Studio is also a native desktop app, written in C++ with Qt. Type an idea, pick
 2D or 3D and a style, and press **Animate**. You watch each agent work, and the finished animation
-plays right in the window. Every animation you make is listed on the left, ready to replay, open
+plays right in the window with its own music and sound effects. Pick a length preset, or
+**Custom…** for anything from 2 to 60 seconds. Every animation you make is listed on the left, ready to replay, open
 in your browser, or tweak and try again.
 
 <p align="center">
   <img src="docs/desktop-app.png" alt="The desktop app after making “fireflies lighting up a forest clearing at dusk” in the Watercolor style: all six steps are done and the animation plays in the window" width="90%">
 </p>
+
+In the desktop and command-line apps a sixth agent, **Sound**, writes a short score: a tempo, a
+key, chords, a melody, the instruments, and sound effects timed to the action (a pop, a splash, a
+whoosh and so on). The app plays that score through a synthesizer built into the engine and saves it
+as `soundtrack.wav`, so no samples or downloads are needed. The soundtrack loops in time with the
+animation, and a **Sound on/off** button sits in the corner of the page.
 
 When you like the result, press **Export** to save it as an animated GIF (built in) or an MP4
 video (needs [ffmpeg](https://ffmpeg.org/download.html) installed).
@@ -86,6 +93,8 @@ The same engine has a command-line app too:
 
 ```bash
 ./cpp/build/animation-studio --mode 3d "a lighthouse at night"
+./cpp/build/animation-studio --length 20 "fireworks over a harbor"   # exactly 20 seconds
+./cpp/build/animation-studio --no-music "a door creaking open"       # effects only (or --no-effects, --no-sound)
 ./cpp/build/animation-studio --runner mock "anything"   # offline, with canned agents
 ```
 
@@ -95,10 +104,13 @@ for the engine tests.
 ## How it works
 
 ```
-your prompt ──► Director (hidden) ──► Storyboard ──► Designer ──► Animator ──► Renderer ──► Reviewer
-                refines the brief      scenes &       characters,   movement &   working      checks and
-                                       timing         colors        keyframes    code         sends fixes back
+your prompt ──► Director (hidden) ──► Storyboard ──► Designer ──► Animator ──► Sound ──► Renderer ──► Reviewer
+                refines the brief      scenes &       characters,   movement &   music &   working      checks and
+                                       timing         colors        keyframes    effects   code         sends fixes back
 ```
+
+The Sound agent is part of the desktop and command-line apps. The Claude Code plugin runs the other
+five.
 
 The director's brief and every agent's output are saved next to the finished animation, so you can
 see how it was made:
@@ -110,6 +122,8 @@ animations/2026-11-27T21-40-00-a-paper-boat/
   storyboard.json   scenes and timing
   design.json       characters, colors and objects
   animation.json    keyframes
+  score.json        the music and sound effects (desktop and command-line apps)
+  soundtrack.wav    the soundtrack, played by index.html
   index.html        the finished animation (open it in a browser)
   preview.png       a screenshot from the browser check
   review.json       the reviewer's notes and how many fix rounds it took

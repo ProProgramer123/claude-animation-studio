@@ -13,14 +13,14 @@ StudioRun::~StudioRun() {
   if (thread_.joinable()) thread_.join();
 }
 
-void StudioRun::start(const QString& prompt, studio::Mode mode, const QString& outputDir, const Settings& s,
-                      studio::AnimationChecker* checker) {
+void StudioRun::start(const QString& prompt, studio::Mode mode, double lengthSeconds, studio::SoundOptions sound,
+                      const QString& outputDir, const Settings& s, studio::AnimationChecker* checker) {
   if (running_) return;
   if (thread_.joinable()) thread_.join();
   running_ = true;
   cancelled_ = false;
 
-  thread_ = std::thread([this, prompt, mode, outputDir, s, checker] {
+  thread_ = std::thread([this, prompt, mode, lengthSeconds, sound, outputDir, s, checker] {
     const auto isCancelled = [this] { return cancelled_.load(); };
     try {
       std::unique_ptr<studio::AgentRunner> runner;
@@ -37,6 +37,8 @@ void StudioRun::start(const QString& prompt, studio::Mode mode, const QString& o
       studio::PipelineOptions o;
       o.prompt = prompt.toStdString();
       o.mode = mode;
+      o.lengthSeconds = lengthSeconds;
+      o.sound = sound;
       o.runner = runner.get();
       o.outputDir = std::filesystem::u8path(outputDir.toStdString());
       o.maxRevisions = s.revisions;

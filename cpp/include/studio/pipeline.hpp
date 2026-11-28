@@ -33,9 +33,19 @@ struct Review {
   std::vector<std::string> issues;
 };
 
+/** Which parts of the soundtrack to make. Both off: no Sound agent, no soundtrack. */
+struct SoundOptions {
+  bool music = true;
+  bool effects = true;
+  bool any() const { return music || effects; }
+};
+
 struct PipelineOptions {
   std::string prompt;
   Mode mode = Mode::TwoD;
+  /** Exact length in seconds (2 to 60). 0 lets the director choose. */
+  double lengthSeconds = 0;
+  SoundOptions sound;
   AgentRunner* runner = nullptr;
   /** Folder where this animation's files are written. */
   std::filesystem::path outputDir;
@@ -57,6 +67,10 @@ struct PipelineResult {
   bool approved = false;
   int revisions = 0;
   std::vector<std::string> openIssues;
+  /** Length the animation and soundtrack were made for, in seconds. */
+  double durationSeconds = 0;
+  /** soundtrack.wav, when sound was made. */
+  std::optional<std::filesystem::path> soundtrackPath;
   /** Screenshot of the finished animation, when the browser check ran. */
   std::optional<std::filesystem::path> previewPath;
 };
@@ -70,5 +84,9 @@ struct Cancelled : std::runtime_error {
  *  If the reviewer finds problems, the renderer gets the issues and tries again.
  *  Every stage's output is saved next to the final index.html. Throws std::runtime_error on failure. */
 PipelineResult runPipeline(const PipelineOptions& options);
+
+/** Adds the soundtrack player (soundtrack.wav, looping in time with the animation, with a mute
+ *  button) to an HTML page. Exposed for tests and for apps that swap the soundtrack. */
+std::string addSoundtrackPlayer(const std::string& html, double durationSeconds);
 
 }  // namespace studio

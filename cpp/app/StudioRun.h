@@ -27,8 +27,8 @@ class StudioRun : public QObject {
   bool running() const { return running_; }
 
   /** Starts a run. `checker` may be null. */
-  void start(const QString& prompt, studio::Mode mode, const QString& outputDir, const Settings& settings,
-             studio::AnimationChecker* checker);
+  void start(const QString& prompt, studio::Mode mode, double lengthSeconds, studio::SoundOptions sound,
+             const QString& outputDir, const Settings& settings, studio::AnimationChecker* checker);
   /** Asks the run to stop; the agent that is working is stopped straight away. */
   void cancel() { cancelled_ = true; }
 

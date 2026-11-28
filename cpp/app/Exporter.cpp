@@ -66,6 +66,7 @@ void Exporter::start(const QString& folder, Format format, const QString& outPat
   view_->setAttribute(Qt::WA_DontShowOnScreen);
   view_->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, true);
   view_->settings()->setAttribute(QWebEngineSettings::PlaybackRequiresUserGesture, false);
+  view_->page()->setAudioMuted(true);  // recording happens silently in the background
   view_->resize(size_);
   view_->show();
   connect(view_, &QWebEngineView::loadFinished, this, [this](bool ok) {
