@@ -8,12 +8,12 @@
 
 struct StylePreset {
   QString name;
-  QString instruction;  // empty for "Let the director choose"
+  QString instruction;  // empty for "Any style" (the director chooses)
 };
 
 inline const QVector<StylePreset>& stylePresets() {
   static const QVector<StylePreset> list{
-      {"Let the director choose", ""},
+      {"Any style", ""},
       {"Cartoon", "Bold outlines, bright flat colors and bouncy, exaggerated cartoon motion."},
       {"Watercolor", "Soft watercolor look: gentle washes of color, paper texture, slow calm motion."},
       {"Pixel art", "Retro pixel-art look with a limited palette and crisp, chunky pixels."},

@@ -22,7 +22,7 @@ app/                      the Qt 6 desktop app
   MainWindow              idea box, 2D/3D, style and length, live steps, preview, history
   StudioRun               runs the pipeline on a background thread, with Stop
   WebChecker              tests each animation in Qt's built-in Chromium (errors, does it move?)
-  Exporter                records the animation off screen, then writes a GIF or (with ffmpeg) an MP4
+  Exporter                records the animation off screen, then writes a GIF or (with ffmpeg) an MP4 with its sound
   Styles.h                style and length presets, and the "Surprise me" ideas
   History, SettingsDialog, Theme.h
 tests/test_main.cpp       engine tests (ctest)

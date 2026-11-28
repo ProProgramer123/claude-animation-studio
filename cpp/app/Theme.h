@@ -33,7 +33,7 @@ inline void applyTheme(QApplication& app) {
     QPlainTextEdit, QLineEdit, QSpinBox { background: #fbfaf7; border: 1px solid #ddd8ca; border-radius: 8px;
                                           padding: 6px 8px; font-size: 14px; selection-background-color: #f0c9b6; }
     QPlainTextEdit:focus, QLineEdit:focus { border: 1px solid #d97757; }
-    QComboBox { background: #ffffff; border: 1px solid #ddd8ca; border-radius: 7px; padding: 5px 10px; min-width: 120px; }
+    QComboBox { background: #ffffff; border: 1px solid #ddd8ca; border-radius: 7px; padding: 5px 26px 5px 10px; min-width: 120px; }
     QPushButton { background: #ffffff; border: 1px solid #ddd8ca; border-radius: 7px; padding: 6px 14px; }
     QPushButton:hover { background: #faf9f6; border-color: #cfc9b8; }
     QPushButton:disabled { color: #b3afa5; }

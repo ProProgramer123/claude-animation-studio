@@ -24,6 +24,7 @@ void usage(std::ostream& out) {
          "  --no-music          Sound effects only\n"
          "  --no-effects        Music only\n"
          "  --no-sound          No soundtrack at all\n"
+         "  --music FILE        Use your own music (MP3, WAV, OGG, Opus or FLAC); effects are still added\n"
          "  --out DIR           Folder for the animation. Default: ./animations/<time>-<prompt>\n"
          "  --runner NAME       claude-code (default, uses your Claude Code login) or mock\n"
          "  --model NAME        Model alias or id passed to Claude Code\n"
@@ -71,7 +72,10 @@ int main(int argc, char** argv) {
     } else if (arg == "--no-effects") {
       sound.effects = false;
     } else if (arg == "--no-sound") {
-      sound = {false, false};
+      sound.music = sound.effects = false;
+      sound.musicFile.clear();
+    } else if (arg == "--music") {
+      sound.musicFile = std::filesystem::u8path(value("--music"));
     } else if (arg == "--out") {
       out = value("--out");
     } else if (arg == "--runner") {
@@ -114,6 +118,7 @@ int main(int argc, char** argv) {
     std::cout << "Made a " << (mode == Mode::ThreeD ? "3D" : "2D") << " animation: \"" << r.title << "\"\n"
               << "Open it: " << r.htmlPath.string() << "\n";
     if (r.soundtrackPath) std::cout << "Soundtrack: " << r.soundtrackPath->string() << "\n";
+    if (r.musicPath) std::cout << "Music: " << r.musicPath->string() << "\n";
     if (r.approved) {
       std::cout << "Reviewer approved it";
       if (r.revisions) std::cout << " after " << r.revisions << " revision(s)";
